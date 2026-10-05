@@ -33,7 +33,6 @@
     "artifactName": "imagen-lote-setup-${version}.${ext}"
   },
   "nsis": {
-    "include": "build/installer.nsh",
     "installerIcon": "assets/forma-logo.ico",
     "uninstallerIcon": "assets/forma-logo.ico",
     "installerHeaderIcon": "assets/forma-logo.ico",

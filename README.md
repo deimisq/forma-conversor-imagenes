@@ -29,7 +29,7 @@ npm run build:app
 npm run build
 ```
 
-El instalador NSIS x64 se genera en `release/1.1.0/`.
+El instalador NSIS x64 se genera en `release/1.1.1/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
 
@@ -39,7 +39,7 @@ Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador 
 
 La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
 
-Al ejecutar el instalador con Forma ya instalada, detecta y muestra la versión actual, y ofrece actualizar, modificar los accesos directos o reparar los archivos de la aplicación. La configuración y los archivos de usuario se conservan.
+Al ejecutar el instalador con Forma ya instalada, NSIS usa el mismo identificador de producto para reconocerla y actualizar sus archivos en la ubicación seleccionada. Los datos de usuario y las imágenes convertidas se conservan.
 
 ## Versiones y entregas
 
