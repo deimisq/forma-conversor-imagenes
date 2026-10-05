@@ -24,3 +24,4 @@
 - Usa la misma marca SVG para el encabezado, la ventana y los recursos del instalador.
 - Muestra la versión del paquete en la aplicación.
 - Maneja sin errores la vista previa abierta fuera de Electron.
+- Se agregaron los valores de Cloudflare R2
