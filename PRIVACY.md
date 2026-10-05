@@ -26,6 +26,8 @@ La aplicación no descarga una actualización hasta que eliges hacerlo. Si la de
 
 La app no incluye analítica, publicidad, seguimiento entre aplicaciones, cuentas de usuario ni telemetría propia. No envía datos de conversión ni estadísticas de uso.
 
+Los instaladores ofrecidos para descarga directa desde Microsoft Store pueden alojarse en Cloudflare R2. Al solicitar una descarga, Cloudflare recibe los datos técnicos habituales de la conexión al servidor de archivos y los procesa conforme a su [política de privacidad](https://www.cloudflare.com/privacypolicy/). Esto no afecta al procesamiento local de imágenes dentro de Forma.
+
 ## Microsoft Store
 
 Microsoft puede procesar información relacionada con tu cuenta, la descarga, la licencia y las actualizaciones de la aplicación de acuerdo con sus propias condiciones y su [Declaración de privacidad](https://privacy.microsoft.com/privacystatement). Forma no recibe tus credenciales ni los datos de pago de Microsoft Store.

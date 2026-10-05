@@ -7,6 +7,8 @@
 - Los formatos de salida soportados actualmente son JPEG, PNG, WebP, AVIF, TIFF y GIF.
 - Sigue SemVer; sincroniza `package.json` y `package-lock.json`, registra cambios en `CHANGELOG.md` y usa tags `vX.Y.Z`.
 - El repo público para Releases y `electron-updater` es `deimisq/forma-conversor-imagenes`; publica instaladores únicamente desde tags SemVer mediante `.github/workflows/release.yml`.
+- La publicación directa para Microsoft Store es opcional y se habilita con `R2_PUBLIC_BASE_URL` y credenciales R2 en GitHub Actions; verificar que el alias latest responde sin redirecciones.
+- El alias R2 `forma-setup-latest.exe` debe actualizarse automáticamente en cada tag; la URL estable se registra una sola vez en Microsoft Store.
 - Comandos: `npm run dev`, `npm run typecheck`, `npm run build:app` y `npm run build` (instalador NSIS x64).
 
 ## Preparación

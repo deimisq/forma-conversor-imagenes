@@ -48,7 +48,29 @@ El instalador estándar gestiona la actualización de una instalación existente
 
 Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `forma-setup-X.Y.Z.exe` desde la última versión.
 
+Si está configurado Cloudflare R2, el workflow también sube una copia versionada (`forma-setup-X.Y.Z.exe`) y reemplaza `forma-setup-latest.exe`. Para Microsoft Store se registra una sola vez la URL pública directa `R2_PUBLIC_BASE_URL/forma-setup-latest.exe`; no hay que editar el enlace de Store en cada versión.
+
+Para habilitar la copia, crea un bucket R2 y asígnale un dominio público HTTPS que sirva los objetos directamente, sin redirecciones. En **Settings → Secrets and variables → Actions** del repositorio, añade:
+
+- Variable `R2_BUCKET_NAME`: nombre del bucket.
+- Variable `R2_PUBLIC_BASE_URL`: base HTTPS del dominio público, sin barra final (por ejemplo `https://descargas.ejemplo.com`).
+- Secretos `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`: token de API de R2 con permisos de lectura/escritura de objetos solo en ese bucket.
+
+Si `R2_PUBLIC_BASE_URL` no está definida, el workflow publica normalmente GitHub Releases y omite el paso de R2. Cuando sí está configurada, verifica después de subir que `forma-setup-latest.exe` responde directamente con HTTP 200 y falla si la URL redirige.
+
 La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
+
+### Enlace directo para Microsoft Store
+
+GitHub Releases redirige las descargas y Microsoft Store puede rechazar esa URL. El workflow también puede copiar cada instalador a Cloudflare R2, donde se mantiene una URL estable `forma-setup-latest.exe` que se actualiza automáticamente en cada release; la URL versionada se conserva en paralelo.
+
+Para habilitarlo, crea un bucket R2 con acceso público mediante un dominio personalizado de descarga y configura en GitHub:
+
+- Variable `R2_BUCKET_NAME`: nombre del bucket.
+- Variable `R2_PUBLIC_BASE_URL`: URL pública HTTPS directa del bucket, sin barra final ni redirección.
+- Secretos `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`: credenciales S3 de R2 con permiso de escritura solo en ese bucket.
+
+Después de configurar esos valores y ejecutar el workflow con un tag, usa `R2_PUBLIC_BASE_URL/forma-setup-latest.exe` como URL del paquete en Microsoft Store. La primera versión requiere una publicación etiquetada nueva o volver a ejecutar el workflow para copiar el instalador existente.
 
 Al ejecutar el instalador con Forma ya instalada, NSIS usa el mismo identificador de producto para reconocerla y actualizar sus archivos en la ubicación seleccionada. Los datos de usuario y las imágenes convertidas se conservan.
 

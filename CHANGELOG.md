@@ -3,6 +3,7 @@
 ## En desarrollo
 
 - Añade una política de privacidad pública para la distribución de Forma.
+- Prepara la copia automática de instaladores a Cloudflare R2 y una URL estable para Microsoft Store.
 
 ## [1.1.1] - 2026-10-05
 
