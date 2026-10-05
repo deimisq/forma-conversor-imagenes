@@ -2,8 +2,8 @@
 
 ## En desarrollo
 
+- Se agregaron los valores de Cloudflare R2 y la URL estable para Microsoft Store.
 - Añade una política de privacidad pública para la distribución de Forma.
-- Prepara la copia automática de instaladores a Cloudflare R2 y una URL estable para Microsoft Store.
 
 ## [1.1.1] - 2026-10-05
 
@@ -24,4 +24,3 @@
 - Usa la misma marca SVG para el encabezado, la ventana y los recursos del instalador.
 - Muestra la versión del paquete en la aplicación.
 - Maneja sin errores la vista previa abierta fuera de Electron.
-- Se agregaron los valores de Cloudflare R2
