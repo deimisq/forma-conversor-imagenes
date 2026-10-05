@@ -4,6 +4,10 @@
   "version": "1.0.2",
   "description": "Conversor local de imágenes por lotes para Windows",
   "author": "Forma",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deimisq/forma-conversor-imagenes.git"
+  },
   "type": "module",
   "scripts": {
     "predev": "node scripts/create-icons.mjs",

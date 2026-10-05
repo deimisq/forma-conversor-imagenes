@@ -37,7 +37,7 @@ El instalador de desarrollo no está firmado con un certificado de publicación,
 
 El proyecto sigue SemVer: incrementa MAJOR para cambios incompatibles, MINOR para funciones nuevas y PATCH para correcciones. Mantén `version` en `package.json` y `package-lock.json` sincronizados, añade una entrada a `CHANGELOG.md` y etiqueta cada entrega como `vX.Y.Z`. electron-builder usa esa versión para el nombre y carpeta del instalador.
 
-Cuando exista el remoto de GitHub, registra su URL en `package.json` y configura electron-builder para publicar en GitHub Releases. Ese feed permitirá incorporar `electron-updater` y notificaciones dentro de Forma más adelante; no se habilitan comprobaciones de actualización hasta conocer el repositorio de publicación.
+El remoto público está registrado en Git y en los metadatos de `package.json`. Las versiones se siguen con tags `vX.Y.Z`. La publicación de binarios en GitHub Releases y la integración de `electron-updater` con notificaciones dentro de Forma quedan como trabajo futuro; no se habilitan comprobaciones de actualización hasta definir el flujo de publicación y sus credenciales seguras.
 
 ## Uso
 
