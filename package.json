@@ -1,0 +1,37 @@
+{
+  "name": "imagen-lote",
+  "private": true,
+  "version": "1.0.2",
+  "description": "Conversor local de imágenes por lotes para Windows",
+  "author": "Forma",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/create-icons.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/create-icons.mjs",
+    "build": "vue-tsc --noEmit && vite build && electron-builder --win nsis",
+    "prebuild:app": "node scripts/create-icons.mjs",
+    "build:app": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@lucide/vue": "^1.52.0",
+    "sharp": "^0.35.5",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.9",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.2",
+    "typescript": "^5.2.2",
+    "vite": "^8.3.2",
+    "vite-plugin-electron": "^1.1.2",
+    "vite-plugin-electron-renderer": "^1.0.0",
+    "vue-tsc": "^2.0.26"
+  },
+  "main": "dist-electron/main.js"
+}
