@@ -4,6 +4,8 @@ Aplicación de escritorio para Windows que convierte colecciones grandes de imá
 
 Forma se distribuye bajo la licencia [GNU GPL v3.0](LICENSE).
 
+Consulta la [Política de privacidad](PRIVACY.md) de la aplicación.
+
 ## Requisitos
 
 - Windows 10 o posterior, 64 bits

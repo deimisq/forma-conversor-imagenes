@@ -1,5 +1,9 @@
 # Registro de cambios
 
+## En desarrollo
+
+- Añade una política de privacidad pública para la distribución de Forma.
+
 ## [1.1.1] - 2026-10-05
 
 - Mantiene el instalador NSIS estándar para actualizar instalaciones previas sin páginas de mantenimiento personalizadas.
