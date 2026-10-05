@@ -13,7 +13,7 @@
     "predev": "node scripts/create-icons.mjs",
     "dev": "vite",
     "prebuild": "node scripts/create-icons.mjs",
-    "build": "vue-tsc --noEmit && vite build && electron-builder --win nsis",
+    "build": "vue-tsc --noEmit && vite build && electron-builder --win nsis --publish never",
     "release": "npm run build:app && electron-builder --win nsis --publish always",
     "prebuild:app": "node scripts/create-icons.mjs",
     "build:app": "vue-tsc --noEmit && vite build",

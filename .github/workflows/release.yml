@@ -42,7 +42,7 @@ jobs:
 
       - name: Compilar instalador para carga inicial a R2
         if: github.event_name == 'workflow_dispatch'
-        run: npm run build -- --publish never
+        run: npm run build
 
       - name: Exigir configuración R2 en carga manual
         if: github.event_name == 'workflow_dispatch'
