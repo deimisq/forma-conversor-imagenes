@@ -58,6 +58,8 @@ Para habilitar la copia, crea un bucket R2 y asígnale un dominio público HTTPS
 
 Si `R2_PUBLIC_BASE_URL` no está definida, el workflow publica normalmente GitHub Releases y omite el paso de R2. Cuando sí está configurada, verifica después de subir que `forma-setup-latest.exe` responde directamente con HTTP 200 y falla si la URL redirige.
 
+Para cargar en R2 la versión que ya está publicada, configura primero las variables y secretos y ejecuta manualmente **Publicar instalador Windows** desde GitHub Actions. La ejecución manual compila el paquete actual y solo lo copia a R2; no vuelve a crear ni modificar el GitHub Release. Las versiones futuras se copiarán automáticamente al subir sus tags.
+
 La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
 
 ### Enlace directo para Microsoft Store

@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -25,6 +26,7 @@ jobs:
         run: npm ci
 
       - name: Validar tag SemVer
+        if: github.event_name == 'push'
         shell: pwsh
         run: |
           $packageVersion = (Get-Content package.json | ConvertFrom-Json).version
@@ -33,9 +35,24 @@ jobs:
           }
 
       - name: Compilar y publicar instalador
+        if: github.event_name == 'push'
         run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compilar instalador para carga inicial a R2
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run build
+
+      - name: Exigir configuración R2 en carga manual
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          R2_PUBLIC_BASE_URL: ${{ vars.R2_PUBLIC_BASE_URL }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:R2_PUBLIC_BASE_URL)) {
+            throw "Configura primero las variables y secretos de R2 indicados en README.md."
+          }
 
       - name: Copiar instalador a Cloudflare R2
         if: ${{ vars.R2_PUBLIC_BASE_URL != '' }}
