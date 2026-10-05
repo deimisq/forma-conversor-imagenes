@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import formaLogo from './assets/forma-logo.svg'
-import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, FileImage, FolderOpen, LoaderCircle, Plus, Settings2, ShieldCheck, X } from '@lucide/vue'
+import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, Download, FileImage, FolderOpen, LoaderCircle, Plus, RefreshCw, RotateCw, Settings2, ShieldCheck, X } from '@lucide/vue'
 
 type ImageFile = { path: string; name: string; size: number; status: 'queued' | 'converting' | 'done' | 'error' | 'cancelled'; output?: string; message?: string }
 type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
+type UpdateState = { status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'; version?: string; percent?: number; message?: string }
 
 const files = ref<ImageFile[]>([])
 const desktopApiAvailable = typeof window.imageDesk !== 'undefined'
 const runtimeWarning = ref('')
 const appVersion = ref('')
+const updateState = ref<UpdateState>({ status: 'idle' })
 const format = ref<OutputFormat>('webp')
 const quality = ref(84)
 const outputDirectory = ref('')
@@ -39,6 +41,13 @@ const canConvert = computed(() => files.value.length > 0 && !busy.value)
 const currentFormat = computed(() => formats.find((item) => item.value === format.value) ?? formats[0])
 const firstVisibleIndex = computed(() => Math.max(0, Math.floor(listScrollTop.value / rowHeight) - 4))
 const visibleFiles = computed(() => files.value.slice(firstVisibleIndex.value, firstVisibleIndex.value + 14))
+const updateActionLabel = computed(() => {
+  if (updateState.value.status === 'checking') return 'Buscando actualizaciones'
+  if (updateState.value.status === 'available') return `Descargar v${updateState.value.version}`
+  if (updateState.value.status === 'downloading') return `Descargando ${updateState.value.percent ?? 0}%`
+  if (updateState.value.status === 'downloaded') return 'Instalar y reiniciar'
+  return 'Buscar actualizaciones'
+})
 
 function formatSize(bytes: number) {
   if (!bytes) return '—'
@@ -133,6 +142,17 @@ async function openOutputFolder() {
   await window.imageDesk.openFolder(outputDirectory.value)
 }
 
+async function runUpdateAction() {
+  if (!desktopApiAvailable) return
+  if (updateState.value.status === 'available') await window.imageDesk.downloadUpdate()
+  else if (updateState.value.status === 'downloaded') await window.imageDesk.installUpdate()
+  else await window.imageDesk.checkForUpdates()
+}
+
+function handleUpdateState(state: Parameters<Parameters<typeof window.imageDesk.onUpdateState>[0]>[0]) {
+  updateState.value = { ...updateState.value, ...state }
+}
+
 function handleProgress(event: Parameters<Parameters<typeof window.imageDesk.onProgress>[0]>[0]) {
   if (event.type === 'file' && event.input) {
     const file = files.value.find((item) => item.path === event.input)
@@ -150,6 +170,7 @@ function handleProgress(event: Parameters<Parameters<typeof window.imageDesk.onP
 
 let removeProgressListener = () => {}
 let removeDropListener = () => {}
+let removeUpdateListener = () => {}
 onMounted(async () => {
   if (!desktopApiAvailable) {
     runtimeWarning.value = 'Abre Forma en Windows para acceder a tus archivos.'
@@ -160,6 +181,8 @@ onMounted(async () => {
     outputDirectory.value = await window.imageDesk.defaultOutput()
     removeProgressListener = window.imageDesk.onProgress(handleProgress)
     removeDropListener = window.imageDesk.onDroppedFiles((paths) => void addPaths(paths))
+    removeUpdateListener = window.imageDesk.onUpdateState(handleUpdateState)
+    void window.imageDesk.checkForUpdates()
   } catch (error) {
     runtimeWarning.value = error instanceof Error ? error.message : 'No se pudo conectar con la aplicación de escritorio.'
   }
@@ -167,6 +190,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   removeProgressListener()
   removeDropListener()
+  removeUpdateListener()
 })
 </script>
 
@@ -174,7 +198,17 @@ onBeforeUnmount(() => {
   <main class="app-shell" @dragenter.prevent="dragActive = true" @dragover.prevent="dragActive = true" @dragleave.self="dragActive = false" @drop.prevent="dragActive = false">
     <header class="topbar">
       <div class="brand"><img :src="formaLogo" class="brand-mark" alt="" /><span>FORMA<span class="brand-dot">.</span></span></div>
-      <div class="topbar-right"><span class="local-badge"><ShieldCheck :size="14" /> Procesamiento local</span><span class="version-label">WINDOWS · v{{ appVersion }}</span></div>
+      <div class="topbar-right">
+        <span class="local-badge"><ShieldCheck :size="14" /> Procesamiento local</span>
+        <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading'" :aria-label="updateActionLabel" :title="updateState.message || updateActionLabel" @click="runUpdateAction">
+          <LoaderCircle v-if="updateState.status === 'checking' || updateState.status === 'downloading'" :size="15" class="spin" />
+          <Download v-else-if="updateState.status === 'available'" :size="15" />
+          <RotateCw v-else-if="updateState.status === 'downloaded'" :size="15" />
+          <RefreshCw v-else :size="15" />
+          <span>{{ updateActionLabel }}</span>
+        </button>
+        <span class="version-label">WINDOWS · v{{ appVersion }}</span>
+      </div>
     </header>
     <div v-if="runtimeWarning" class="runtime-warning" role="status"><CircleAlert :size="16" /> {{ runtimeWarning }}</div>
 

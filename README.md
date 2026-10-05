@@ -29,15 +29,23 @@ npm run build:app
 npm run build
 ```
 
-El instalador NSIS x64 se genera en `release/1.0.2/`.
+El instalador NSIS x64 se genera en `release/1.1.0/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
+
+## Descargas y actualizaciones
+
+Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `imagen-lote-setup-X.Y.Z.exe` desde la última versión.
+
+La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
+
+Al ejecutar el instalador con Forma ya instalada, detecta y muestra la versión actual, y ofrece actualizar, modificar los accesos directos o reparar los archivos de la aplicación. La configuración y los archivos de usuario se conservan.
 
 ## Versiones y entregas
 
 El proyecto sigue SemVer: incrementa MAJOR para cambios incompatibles, MINOR para funciones nuevas y PATCH para correcciones. Mantén `version` en `package.json` y `package-lock.json` sincronizados, añade una entrada a `CHANGELOG.md` y etiqueta cada entrega como `vX.Y.Z`. electron-builder usa esa versión para el nombre y carpeta del instalador.
 
-El remoto público está registrado en Git y en los metadatos de `package.json`. Las versiones se siguen con tags `vX.Y.Z`. La publicación de binarios en GitHub Releases y la integración de `electron-updater` con notificaciones dentro de Forma quedan como trabajo futuro; no se habilitan comprobaciones de actualización hasta definir el flujo de publicación y sus credenciales seguras.
+El remoto público está registrado en Git y en los metadatos de `package.json`. Para publicar una versión, sincroniza `package.json` y `package-lock.json`, actualiza `CHANGELOG.md` y sube el tag correspondiente; GitHub Actions compila y publica los artefactos usando su `GITHUB_TOKEN` de alcance limitado.
 
 ## Uso
 

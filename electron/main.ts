@@ -1,8 +1,11 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import sharp from 'sharp'
+import electronUpdater from 'electron-updater'
+
+const { autoUpdater } = electronUpdater
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -27,6 +30,47 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null
 const supportedInputs = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.heic', '.heif'])
 let cancelRequested = false
+let updateCheckInProgress = false
+const updateCheckInterval = 6 * 60 * 60 * 1000
+
+autoUpdater.autoDownload = false
+autoUpdater.autoInstallOnAppQuit = false
+autoUpdater.allowPrerelease = false
+autoUpdater.allowDowngrade = false
+
+function sendUpdateState(state: Record<string, unknown>) {
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send('updates:state', state)
+}
+
+async function checkForUpdates() {
+  if (!app.isPackaged || updateCheckInProgress) return
+  updateCheckInProgress = true
+  try {
+    await autoUpdater.checkForUpdates()
+  } catch (error) {
+    sendUpdateState({ status: 'error', message: error instanceof Error ? error.message : 'No se pudo consultar GitHub Releases.' })
+  } finally {
+    updateCheckInProgress = false
+  }
+}
+
+autoUpdater.on('checking-for-update', () => sendUpdateState({ status: 'checking' }))
+autoUpdater.on('update-available', (info) => {
+  sendUpdateState({ status: 'available', version: info.version })
+  if (Notification.isSupported() && BrowserWindow.getAllWindows().every((window) => !window.isFocused())) {
+    new Notification({ title: 'Actualización disponible', body: `Forma ${info.version} ya está disponible.` }).show()
+  }
+})
+autoUpdater.on('update-not-available', (info) => sendUpdateState({ status: 'not-available', version: info.version }))
+autoUpdater.on('download-progress', (progress) => sendUpdateState({
+  status: 'downloading',
+  percent: Math.round(progress.percent),
+  transferred: progress.transferred,
+  total: progress.total,
+}))
+autoUpdater.on('update-downloaded', (info) => sendUpdateState({ status: 'downloaded', version: info.version }))
+autoUpdater.on('update-cancelled', () => sendUpdateState({ status: 'available' }))
+autoUpdater.on('error', (error) => sendUpdateState({ status: 'error', message: error.message }))
 
 type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
 type ConversionOptions = { files: string[]; outputDir: string; format: OutputFormat; quality: number }
@@ -121,6 +165,16 @@ ipcMain.handle('conversion:start', (_event, options: ConversionOptions) => conve
 ipcMain.handle('conversion:cancel', () => { cancelRequested = true })
 ipcMain.handle('folder:open', (_event, folder: string) => shell.openPath(folder))
 ipcMain.handle('app:version', () => app.getVersion())
+ipcMain.handle('updates:check', () => checkForUpdates())
+ipcMain.handle('updates:download', async () => {
+  if (!app.isPackaged) return
+  sendUpdateState({ status: 'downloading', percent: 0 })
+  await autoUpdater.downloadUpdate()
+})
+ipcMain.handle('updates:install', () => {
+  if (!app.isPackaged) return
+  autoUpdater.quitAndInstall(false, true)
+})
 
 ipcMain.handle('files:inspect', async (_event, filePaths: string[]) => {
   const files = await collectImages(filePaths)
@@ -188,4 +242,8 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
   createWindow()
+  if (app.isPackaged) {
+    setTimeout(() => void checkForUpdates(), 10_000)
+    setInterval(() => void checkForUpdates(), updateCheckInterval)
+  }
 })

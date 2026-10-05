@@ -4,6 +4,14 @@
   "appId": "com.forma.imageconverter",
   "asar": true,
   "productName": "Forma Conversor de Imágenes",
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "deimisq",
+      "repo": "forma-conversor-imagenes",
+      "releaseType": "release"
+    }
+  ],
   "directories": {
     "output": "release/${version}"
   },
@@ -22,9 +30,10 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "imagen-lote-setup-${version}.${ext}"
   },
   "nsis": {
+    "include": "build/installer.nsh",
     "installerIcon": "assets/forma-logo.ico",
     "uninstallerIcon": "assets/forma-logo.ico",
     "installerHeaderIcon": "assets/forma-logo.ico",
