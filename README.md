@@ -35,7 +35,7 @@ El instalador de desarrollo no está firmado con un certificado de publicación,
 
 ## Descargas y actualizaciones
 
-Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `imagen-lote-setup-X.Y.Z.exe` desde la última versión.
+Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `forma-setup-X.Y.Z.exe` desde la última versión.
 
 La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
 

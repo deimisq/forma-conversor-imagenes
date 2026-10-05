@@ -20,6 +20,7 @@
     "dist-electron"
   ],
   "win": {
+    "executableName": "Forma",
     "icon": "assets/forma-logo.ico",
     "signExecutable": false,
     "target": [
@@ -30,7 +31,7 @@
         ]
       }
     ],
-    "artifactName": "imagen-lote-setup-${version}.${ext}"
+    "artifactName": "forma-setup-${version}.${ext}"
   },
   "nsis": {
     "installerIcon": "assets/forma-logo.ico",

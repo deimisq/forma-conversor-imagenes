@@ -4,6 +4,7 @@
 
 - Mantiene el instalador NSIS estándar para actualizar instalaciones previas sin páginas de mantenimiento personalizadas.
 - Conserva las comprobaciones de versión y descarga desde GitHub Releases dentro de la app.
+- Nombra el instalador `forma-setup-X.Y.Z.exe`, el ejecutable `Forma.exe` y la carpeta de instalación nueva `Forma`.
 
 ## [1.1.0] - 2026-10-05
 
