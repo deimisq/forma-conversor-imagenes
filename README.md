@@ -35,6 +35,15 @@ El instalador NSIS x64 se genera en `release/1.1.1/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
 
+### Parámetros y códigos de salida
+
+- Instalación silenciosa: `/S` (S mayúscula). No se requiere la opción de instalación silenciosa sin modificadores.
+- Directorio alternativo: `/D=<ruta>`; debe ser el último parámetro de la línea de comandos.
+- Código `0`: instalación o actualización completada correctamente.
+- Código `2`: electron-builder no pudo desinstalar correctamente la versión anterior durante una actualización. Debe tratarse como error de instalación, no como “la aplicación ya existe”.
+
+El instalador estándar gestiona la actualización de una instalación existente usando el identificador estable de Forma. No se definen códigos personalizados separados para cancelación, falta de espacio, reinicio o errores de red; no los mapees a códigos inventados en el catálogo de Store.
+
 ## Descargas y actualizaciones
 
 Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `forma-setup-X.Y.Z.exe` desde la última versión.
