@@ -1,4 +1,3 @@
-// @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "com.forma.imageconverter",
@@ -26,12 +25,22 @@
     "target": [
       {
         "target": "nsis",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
+      },
+      {
+        "target": "appx",
+        "arch": ["x64"]
       }
     ],
     "artifactName": "forma-setup-${version}.${ext}"
+  },
+  "appx": {
+    "applicationId": "FormaConversorDeImagenes",
+    "identityName": "Deimis Quintanilla",
+    "publisher": "Deimis Quintanilla",
+    "publisherDisplayName": "Deimis Quintanilla",
+    "displayName": "Forma Conversor de Imágenes",
+    "languages": ["es-ES"]
   },
   "nsis": {
     "installerIcon": "assets/forma-logo.ico",
