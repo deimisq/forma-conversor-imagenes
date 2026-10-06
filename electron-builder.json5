@@ -36,7 +36,7 @@
   },
   "appx": {
     "applicationId": "FormaConversorDeImagenes",
-    "identityName": "FormaConversordeImagenes",
+    "identityName": "DeimisQuintanilla.Forma.ConversordeImgenez",
     "publisher": "CN=5EE69F12-D1D5-44E6-810D-F3E75E2B3C3F",
     "publisherDisplayName": "Deimis Quintanilla",
     "displayName": "Forma Conversor de Imágenes",
