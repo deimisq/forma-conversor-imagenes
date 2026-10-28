@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { releaseArtifacts } from './release-artifacts.mjs'
 
 const version = JSON.parse(await fs.readFile('package.json', 'utf8')).version
 const releaseDir = path.resolve('release', version)
@@ -43,27 +44,11 @@ const client = new S3Client({
   credentials: { accessKeyId, secretAccessKey },
 })
 
-// Buscar instaladores generados (.exe, .appx, .msix)
-const supportedExtensions = ['.exe', '.appx', '.msix']
-const filesToUpload = []
-
-try {
-  const dirEntries = await fs.readdir(releaseDir)
-  for (const file of dirEntries) {
-    const ext = path.extname(file).toLowerCase()
-    if (supportedExtensions.includes(ext)) {
-      filesToUpload.push({
-        filePath: path.join(releaseDir, file),
-        ext,
-      })
-    }
-  }
-} catch (e) {
-  throw new Error(`No se pudo leer la carpeta de release (${releaseDir}): ${e.message}`)
-}
-
-if (filesToUpload.length === 0) {
-  throw new Error(`No se encontraron instaladores (.exe, .appx, .msix) en ${releaseDir}`)
+// Require all four packages before replacing any public download.
+const filesToUpload = releaseArtifacts(version, releaseDir)
+for (const item of filesToUpload) {
+  const stat = await fs.stat(item.filePath)
+  if (!stat.isFile() || !stat.size) throw new Error(`Paquete incompleto: ${item.filePath}`)
 }
 
 function getContentType(ext) {
@@ -75,8 +60,7 @@ function getContentType(ext) {
 for (const item of filesToUpload) {
   const installer = await fs.readFile(item.filePath)
   const ext = item.ext
-  const versionedKey = `forma-setup-${version}${ext}`
-  const latestKey = `forma-setup-latest${ext}`
+  const { versionedKey, latestKey } = item
   const contentType = getContentType(ext)
 
   console.log(`\nArchivo: ${item.filePath} (${installer.length} bytes)`)

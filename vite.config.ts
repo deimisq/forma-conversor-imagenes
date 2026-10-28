@@ -5,15 +5,31 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __APP_LANGUAGE__: JSON.stringify(process.env.APP_LANGUAGE === 'en' ? 'en' : 'es'),
+  },
   server: {
     watch: {
       ignored: ['**/release/**'],
     },
   },
   plugins: [
+    {
+      name: 'forma-document-language',
+      transformIndexHtml(html) {
+        return process.env.APP_LANGUAGE === 'en'
+          ? html.replace('lang="es"', 'lang="en"').replace('Forma | Conversor de Imágenes', 'Forma | Image Converter')
+          : html
+      },
+    },
     vue(),
     electron({
       main: {
+        vite: {
+          define: {
+            __APP_LANGUAGE__: JSON.stringify(process.env.APP_LANGUAGE === 'en' ? 'en' : 'es'),
+          },
+        },
         // Shortcut of `build.lib.entry`.
         entry: 'electron/main.ts',
       },

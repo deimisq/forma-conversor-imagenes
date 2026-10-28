@@ -1,3 +1,6 @@
+import { t, defaultLanguage, isLanguage, setLanguage } from '../shared/locale'
+import { readLanguage, writeLanguage } from './preferences'
+import { reserveOutput } from './output'
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -30,10 +33,14 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null
 const supportedInputs = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.heic', '.heif'])
 let cancelRequested = false
+let conversionInProgress = false
+const storeManaged = process.windowsStore === true
 let updateCheckInProgress = false
 const updateCheckInterval = 6 * 60 * 60 * 1000
 
 autoUpdater.autoDownload = false
+// English installers must never update to the Spanish release feed.
+if (defaultLanguage === 'en') autoUpdater.channel = 'en'
 autoUpdater.autoInstallOnAppQuit = false
 autoUpdater.allowPrerelease = false
 autoUpdater.allowDowngrade = false
@@ -43,12 +50,16 @@ function sendUpdateState(state: Record<string, unknown>) {
 }
 
 async function checkForUpdates() {
+  if (storeManaged) {
+    sendUpdateState({ status: 'not-available', message: t('Las actualizaciones se gestionan desde Microsoft Store.') })
+    return
+  }
   if (!app.isPackaged || updateCheckInProgress) return
   updateCheckInProgress = true
   try {
     await autoUpdater.checkForUpdates()
   } catch (error) {
-    sendUpdateState({ status: 'error', message: error instanceof Error ? error.message : 'No se pudo consultar GitHub Releases.' })
+    sendUpdateState({ status: 'error', message: error instanceof Error ? error.message : t('No se pudo consultar GitHub Releases.') })
   } finally {
     updateCheckInProgress = false
   }
@@ -58,7 +69,7 @@ autoUpdater.on('checking-for-update', () => sendUpdateState({ status: 'checking'
 autoUpdater.on('update-available', (info) => {
   sendUpdateState({ status: 'available', version: info.version })
   if (Notification.isSupported() && BrowserWindow.getAllWindows().every((window) => !window.isFocused())) {
-    new Notification({ title: 'Actualización disponible', body: `Forma ${info.version} ya está disponible.` }).show()
+    new Notification({ title: t('Actualización disponible'), body: `Forma ${info.version} — ${t('Actualización disponible')}` }).show()
   }
 })
 autoUpdater.on('update-not-available', (info) => sendUpdateState({ status: 'not-available', version: info.version }))
@@ -102,8 +113,9 @@ function sendProgress(payload: Record<string, unknown>) {
 
 async function convertBatch(options: ConversionOptions) {
   cancelRequested = false
-  const files = await collectImages(options.files)
-  const outputDir = options.outputDir || path.join(app.getPath('pictures'), 'Imagenes convertidas')
+  // Keep missing inputs in the batch so Sharp reports an error for each one.
+  const files = [...new Map(options.files.map((file) => [path.resolve(file).toLowerCase(), file])).values()]
+  const outputDir = options.outputDir || path.join(app.getPath('pictures'), t('Imagenes convertidas'))
   await fs.mkdir(outputDir, { recursive: true })
   let nextIndex = 0
   let completed = 0
@@ -117,14 +129,11 @@ async function convertBatch(options: ConversionOptions) {
       if (index >= files.length) return
       const input = files[index]
       sendProgress({ type: 'file', input, status: 'converting' })
+      let output: string | undefined
       try {
         const extension = options.format === 'jpeg' ? 'jpg' : options.format
         const base = path.basename(input, path.extname(input))
-        let output = path.join(outputDir, `${base}-converted.${extension}`)
-        let suffix = 2
-        while (await fs.access(output).then(() => true).catch(() => false)) {
-          output = path.join(outputDir, `${base}-converted-${suffix++}.${extension}`)
-        }
+        output = await reserveOutput(outputDir, base, extension)
         let pipeline = sharp(input, { animated: options.format === 'gif' }).rotate()
         if (options.format === 'jpeg') pipeline = pipeline.flatten({ background: '#ffffff' })
         const encoder = pipeline.toFormat(options.format, options.format === 'png' || options.format === 'tiff' ? {} : { quality: options.quality })
@@ -133,8 +142,9 @@ async function convertBatch(options: ConversionOptions) {
         totals.completed = completed
         sendProgress({ type: 'file', input, output, status: 'done' })
       } catch (error) {
+        if (output) await fs.unlink(output).catch(() => {})
         totals.failed++
-        sendProgress({ type: 'file', input, status: 'error', message: error instanceof Error ? error.message : 'No se pudo convertir.' })
+        sendProgress({ type: 'file', input, status: 'error', message: error instanceof Error ? error.message : t('No se pudo convertir.') })
       }
     }
   }
@@ -146,7 +156,7 @@ async function convertBatch(options: ConversionOptions) {
 }
 
 ipcMain.handle('files:select', async () => {
-  const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: [{ name: 'Imágenes', extensions: [...supportedInputs].map((extension) => extension.slice(1)) }] })
+  const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: [{ name: t('Imágenes'), extensions: [...supportedInputs].map((extension) => extension.slice(1)) }] })
   return result.canceled ? [] : result.filePaths
 })
 
@@ -159,20 +169,48 @@ ipcMain.handle('folder:select-output', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
   return result.canceled ? null : result.filePaths[0]
 })
-ipcMain.handle('folder:default-output', () => path.join(app.getPath('pictures'), 'Imagenes convertidas'))
+ipcMain.handle('folder:default-output', () => path.join(app.getPath('pictures'), t('Imagenes convertidas')))
 
-ipcMain.handle('conversion:start', (_event, options: ConversionOptions) => convertBatch(options))
+ipcMain.handle('conversion:start', async (_event, options: ConversionOptions) => {
+  if (conversionInProgress) throw new Error(t('Ya hay una conversión en curso.'))
+  if (!options || !Array.isArray(options.files) || !options.files.every((file) => typeof file === 'string' && path.isAbsolute(file)) ||
+      typeof options.outputDir !== 'string' || (options.outputDir && !path.isAbsolute(options.outputDir)) ||
+      !['jpeg', 'png', 'webp', 'avif', 'tiff', 'gif'].includes(options.format) ||
+      !Number.isInteger(options.quality) || options.quality < 1 || options.quality > 100) {
+    throw new Error(t('Opciones de conversión inválidas.'))
+  }
+  conversionInProgress = true
+  try {
+    return await convertBatch(options)
+  } finally {
+    conversionInProgress = false
+  }
+})
 ipcMain.handle('conversion:cancel', () => { cancelRequested = true })
 ipcMain.handle('folder:open', (_event, folder: string) => shell.openPath(folder))
 ipcMain.handle('app:version', () => app.getVersion())
+ipcMain.handle('app:language', () => readLanguage(app.getPath('userData')))
+let savingLanguage = false
+ipcMain.handle('app:set-language', async (_event, value: unknown) => {
+  if (!isLanguage(value) || savingLanguage) throw new Error(t('No se pudo guardar el idioma.'))
+  savingLanguage = true
+  try {
+    await writeLanguage(app.getPath('userData'), value)
+    setLanguage(value)
+    for (const window of BrowserWindow.getAllWindows()) window.setTitle(t('Forma | Conversor de Imágenes'))
+    return value
+  } finally {
+    savingLanguage = false
+  }
+})
 ipcMain.handle('updates:check', () => checkForUpdates())
 ipcMain.handle('updates:download', async () => {
-  if (!app.isPackaged) return
+  if (!app.isPackaged || storeManaged) return
   sendUpdateState({ status: 'downloading', percent: 0 })
   await autoUpdater.downloadUpdate()
 })
 ipcMain.handle('updates:install', () => {
-  if (!app.isPackaged) return
+  if (!app.isPackaged || storeManaged || conversionInProgress) return
   autoUpdater.quitAndInstall(false, true)
 })
 
@@ -197,7 +235,7 @@ function createWindow() {
     height: 760,
     minWidth: 760,
     minHeight: 600,
-    title: 'Forma | Conversor de Imágenes',
+    title: t('Forma | Conversor de Imágenes'),
     backgroundColor: '#f5f6f2',
     autoHideMenuBar: true,
     icon: path.join(process.env.VITE_PUBLIC, 'forma-logo.png'),
@@ -239,10 +277,11 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  setLanguage(await readLanguage(app.getPath('userData')))
   Menu.setApplicationMenu(null)
   createWindow()
-  if (app.isPackaged) {
+  if (app.isPackaged && !storeManaged) {
     setTimeout(() => void checkForUpdates(), 10_000)
     setInterval(() => void checkForUpdates(), updateCheckInterval)
   }

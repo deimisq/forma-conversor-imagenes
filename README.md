@@ -6,12 +6,51 @@ Forma se distribuye bajo la licencia [GNU GPL v3.0](LICENSE).
 
 Consulta la [Política de privacidad](PRIVACY.md) de la aplicación.
 
+**Versión actual: 1.2.0** · [English documentation](README.en.md) · [Preparación de Microsoft Store](STORE_RELEASE.md)
+
 ## Requisitos
 
 - Windows 10 o posterior, 64 bits
-- Node.js 20 o posterior y npm para desarrollo/compilación
+- Node.js 22.12 o posterior y npm para desarrollo/compilación
 
 ## Desarrollo
+
+### Variante en inglés
+
+Ambas variantes incluyen español e inglés. El selector de la barra superior muestra
+una bandera y las siglas **ES / EN**, admite teclado y cambia la interfaz al instante.
+La elección se guarda localmente en `preferences.json`, dentro del directorio de datos
+de la aplicación, y se restaura al abrirla. También cambia los textos de los diálogos
+de Forma y las notificaciones; los botones del sistema conservan el idioma de Windows.
+Cambiar el idioma conserva la cola, las opciones y la carpeta de destino actuales.
+Sin preferencia guardada, la variante estándar empieza en español y la inglesa en inglés.
+
+```powershell
+npm run dev:en
+npm run build:app:en
+npm run build:en
+```
+
+El último comando genera NSIS y APPX en `release/1.2.0/en/`, con el nombre
+**Forma Image Converter**. `npm run build` conserva los paquetes en español.
+Ambas compilaciones comparten los directorios intermedios; compílalas secuencialmente.
+
+La variante conserva la identidad y el editor de Microsoft Store: se trata de una
+variante del producto actual y reemplaza la instalación existente. Para publicarla
+como aplicación independiente hace falta reservar otra identidad en Partner Center.
+El flujo automático publica ambas variantes y sus metadatos en GitHub Releases.
+Los manifiestos APPX declaran ambos idiomas, con el idioma inicial de cada variante primero.
+En APPX las actualizaciones corresponden a Microsoft Store; en NSIS se mantiene GitHub.
+NSIS en inglés consulta el canal `en` (`en.yml`), separado de `latest.yml` para evitar
+que una actualización reinstale el español. Ese canal requiere publicar también los
+artefactos ingleses y sus metadatos; el workflow ya publica ambos. El canal se mantiene
+ligado al instalador aunque el usuario cambie el idioma de la interfaz.
+
+Para validar conversiones, idiomas, persistencia, versiones y configuración, ejecuta `npm test`.
+Después de `npm run build:app`, `npm run test:desktop` verifica Electron real con
+ventana oculta y datos temporales: preload, IPC, cambio de idioma, restauración,
+título nativo y conversiones. Tras `npm run build:app:en`, usa `npm run test:desktop:en`.
+Para empaquetar las dos variantes secuencialmente, usa `npm run build:all`.
 
 ```powershell
 npm install
@@ -31,7 +70,7 @@ npm run build:app
 npm run build
 ```
 
-El instalador NSIS x64 se genera en `release/1.1.1/`.
+El instalador NSIS x64 y el APPX se generan en `release/1.2.0/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
 
@@ -46,9 +85,14 @@ El instalador estándar gestiona la actualización de una instalación existente
 
 ## Descargas y actualizaciones
 
-Cada tag `vX.Y.Z` ejecuta el workflow de GitHub Actions y publica el instalador Windows x64 en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). No hace falta clonar ni compilar: descarga `forma-setup-X.Y.Z.exe` desde la última versión.
+Cada tag `vX.Y.Z` ejecuta pruebas y `npm run release:all` en GitHub Actions. Publica ambos instaladores x64, ambos APPX y los metadatos `latest.yml` y `en.yml` en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). Descarga `forma-setup-X.Y.Z.exe` para iniciar en español o `forma-setup-en-X.Y.Z.exe` para iniciar en inglés.
 
 Si está configurado Cloudflare R2, el workflow también sube una copia versionada (`forma-setup-X.Y.Z.exe`) y reemplaza `forma-setup-latest.exe`. Para Microsoft Store se registra una sola vez la URL pública directa `R2_PUBLIC_BASE_URL/forma-setup-latest.exe`; no hay que editar el enlace de Store en cada versión.
+
+La variante inglesa usa `forma-setup-en-X.Y.Z.exe` y `forma-setup-en-latest.exe`.
+También se copian los APPX con la misma nomenclatura. Se comprueba que existan los
+cuatro paquetes antes de cambiar los enlaces públicos, y las URLs de ambos idiomas
+permanecen separadas. La configuración y los secretos existentes sirven para ambos.
 
 Para habilitar la copia, crea un bucket R2 y asígnale un dominio público HTTPS que sirva los objetos directamente, sin redirecciones. En **Settings → Secrets and variables → Actions** del repositorio, añade:
 
@@ -60,7 +104,7 @@ Si `R2_PUBLIC_BASE_URL` no está definida, el workflow publica normalmente GitHu
 
 Para cargar en R2 la versión que ya está publicada, configura primero las variables y secretos y ejecuta manualmente **Publicar instalador Windows** desde GitHub Actions. La ejecución manual compila el paquete actual y solo lo copia a R2; no vuelve a crear ni modificar el GitHub Release. Las versiones futuras se copiarán automáticamente al subir sus tags.
 
-La aplicación instalada consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales.
+La aplicación instalada mediante NSIS consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales. Los paquetes APPX delegan sus actualizaciones en Microsoft Store.
 
 ### Enlace directo para Microsoft Store
 

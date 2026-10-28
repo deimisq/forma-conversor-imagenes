@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('imageDesk', {
   getVersion: () => ipcRenderer.invoke('app:version'),
+  getLanguage: () => ipcRenderer.invoke('app:language'),
+  setLanguage: (language: 'es' | 'en') => ipcRenderer.invoke('app:set-language', language),
   checkForUpdates: () => ipcRenderer.invoke('updates:check'),
   downloadUpdate: () => ipcRenderer.invoke('updates:download'),
   installUpdate: () => ipcRenderer.invoke('updates:install'),

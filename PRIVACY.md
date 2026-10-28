@@ -1,6 +1,8 @@
 # Política de privacidad de Forma
 
-**Última actualización: 5 de octubre de 2026**
+**Última actualización: 28 de octubre de 2026 · Forma 1.2.0**
+
+[English privacy policy](PRIVACY.en.md)
 
 Forma es una aplicación de escritorio para Windows que convierte imágenes por lotes. Esta política describe la información que la aplicación procesa y las conexiones de red que realiza.
 
@@ -13,12 +15,25 @@ Forma es un proyecto independiente mantenido por la cuenta pública [deimisq en 
 - La conversión se realiza localmente en tu equipo mediante Sharp.
 - Forma lee los archivos o carpetas que seleccionas, incluidos sus nombres, rutas y metadatos necesarios para convertirlos y mostrar la cola.
 - Las imágenes originales no se cargan ni se envían a Forma, GitHub, Microsoft ni a otros servidores.
-- Los resultados se guardan en la carpeta que elijas o, de forma predeterminada, en `Imágenes/Imagenes convertidas`.
+- Los resultados se guardan en la carpeta que elijas o, de forma predeterminada, en `Imágenes/Imagenes convertidas` o `Imágenes/Converted images`, según el idioma al iniciar.
 - Forma no conserva una copia propia de tus imágenes. Los originales y resultados permanecen en las ubicaciones de Windows que hayas elegido hasta que tú los muevas o elimines.
+
+## Preferencia de idioma
+
+Forma guarda únicamente la elección de idioma (`es` o `en`) en `preferences.json`,
+dentro del directorio local de datos de la aplicación. La preferencia no contiene
+imágenes, rutas de archivos ni estadísticas de uso y no se envía a ningún servidor.
+Puedes cambiarla mediante el selector ES / EN o eliminar ese archivo con Forma cerrada
+para recuperar el idioma inicial del instalador. El desinstalador puede conservar
+los datos locales para permitir futuras reinstalaciones.
 
 ## Conexiones de red y actualizaciones
 
 La versión distribuida mediante el instalador independiente consulta GitHub Releases para comprobar si hay una versión nueva. La comprobación se realiza al abrir la aplicación y, mientras permanece abierta, cada seis horas; también puede iniciarse manualmente desde la interfaz.
+
+Los instaladores español e inglés consultan canales separados (`latest` y `en`).
+La preferencia seleccionada en la interfaz no se envía ni modifica ese canal.
+Los paquetes APPX se actualizan mediante Microsoft Store y no utilizan el actualizador de GitHub.
 
 Al consultar GitHub, la conexión puede incluir los datos técnicos habituales de una solicitud HTTPS, como la dirección IP, la hora, la versión consultada y metadatos del cliente. GitHub procesa esa conexión conforme a su [Declaración de privacidad](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement). Forma no recibe la dirección IP ni utiliza estas solicitudes para identificarte.
 

@@ -25,6 +25,9 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Validar tipos y regresiones
+        run: npm run typecheck && npm test
+
       - name: Validar tag SemVer
         if: github.event_name == 'push'
         shell: pwsh
@@ -34,15 +37,15 @@ jobs:
             throw "El tag $env:GITHUB_REF_NAME no coincide con package.json ($packageVersion)."
           }
 
-      - name: Compilar y publicar instalador
+      - name: Compilar y publicar ambas variantes
         if: github.event_name == 'push'
-        run: npm run release
+        run: npm run release:all
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compilar instalador para carga inicial a R2
         if: github.event_name == 'workflow_dispatch'
-        run: npm run build
+        run: npm run build:all
 
       - name: Exigir configuración R2 en carga manual
         if: github.event_name == 'workflow_dispatch'

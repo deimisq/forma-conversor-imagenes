@@ -4,6 +4,8 @@ declare global {
   interface Window {
     imageDesk: {
       getVersion: () => Promise<string>
+      getLanguage: () => Promise<'es' | 'en'>
+      setLanguage: (language: 'es' | 'en') => Promise<'es' | 'en'>
       checkForUpdates: () => Promise<void>
       downloadUpdate: () => Promise<void>
       installUpdate: () => Promise<void>

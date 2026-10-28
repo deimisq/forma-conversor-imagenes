@@ -1,6 +1,19 @@
 # Registro de cambios
 
-## En desarrollo
+## [1.2.0] - 2026-10-28
+
+- Añade selector de idioma ES / EN con banderas SVG locales, accesibilidad por teclado y cambio inmediato sin reiniciar.
+- Guarda la preferencia de idioma localmente y la restaura en próximos inicios; traduce también diálogos y notificaciones.
+- Publica ambas variantes con canales de actualización y URLs de descarga separados; declara ambos idiomas en los manifiestos APPX.
+- Sincroniza la versión 1.2.0 en los metadatos, el lockfile y la documentación; documenta los pasos para Microsoft Store en español e inglés.
+
+- Añade una variante inglesa de interfaz, diálogos, notificaciones e instaladores, conservando la compilación española.
+- Evita sobrescribir resultados cuando varios trabajadores convierten archivos con el mismo nombre.
+- Elimina duplicados de la cola al importar carpetas y bloquea cambios del lote durante una conversión.
+- Informa errores de archivos eliminados después de agregarlos y muestra los errores generales del lote.
+- Ajusta la lista virtual a la altura de la ventana.
+- Delega actualizaciones APPX en Microsoft Store y separa el canal de actualizaciones inglés de NSIS.
+- Añade validación de opciones de conversión y pruebas de regresión con imágenes reales.
 
 - Se agregaron los valores de Cloudflare R2 y la URL estable para Microsoft Store.
 - Añade una política de privacidad pública para la distribución de Forma.

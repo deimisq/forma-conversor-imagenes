@@ -17,15 +17,21 @@
 * { box-sizing: border-box; }
 html, #app { height: 100%; }
 body { height: 100%; margin: 0; min-width: 360px; overflow: hidden; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { color: inherit; }
-button:focus-visible, input:focus-visible { outline: 3px solid #9ccab5; outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #9ccab5; outline-offset: 2px; }
 .app-shell { height: 100%; min-height: 0; overflow: hidden; }
 .topbar { height: 68px; display: flex; justify-content: space-between; align-items: center; padding: 0 5.5%; border-bottom: 1px solid #e6e9e3; background: rgba(255,255,255,.65); }
 .brand { display: flex; align-items: center; gap: 10px; font: 800 14px 'Manrope Variable', 'Segoe UI', sans-serif; letter-spacing: 1.5px; }
 .brand-mark { width: 31px; height: 31px; flex: 0 0 31px; display: block; object-fit: contain; border-radius: 9px 9px 9px 3px; }
 .brand-dot { color: var(--orange); }
-.topbar-right { display: flex; align-items: center; gap: 23px; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.language-select { position: relative; display: flex; align-items: center; flex: 0 0 auto; gap: 7px; height: 32px; padding: 0 8px; border: 1px solid #dce8df; border-radius: 5px; background: #fff; color: #426c54; }
+.language-flag { display: block; flex: 0 0 auto; border-radius: 2px; overflow: hidden; }
+.language-select select { appearance: none; padding: 7px 17px 7px 0; border: 0; background: transparent; color: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.language-select > svg:last-child { position: absolute; right: 7px; pointer-events: none; }
+.language-select:focus-within { outline: 3px solid #9ccab5; outline-offset: 2px; }
+.language-select select:focus-visible { outline: none; }
 .local-badge, .version-label { display: flex; align-items: center; gap: 7px; color: #64806f; font-size: 12px; }
 .version-label { color: #959d97; letter-spacing: 1.1px; font-size: 10px; }
 .update-action { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 10px; border: 1px solid #dce8df; border-radius: 5px; background: #fff; color: #426c54; font-size: 10px; font-weight: 600; white-space: nowrap; cursor: pointer; }
@@ -159,6 +165,7 @@ input[type='range'] { width: 100%; height: 4px; margin: 15px 0 8px; accent-color
 }
 
 @media (max-width: 410px) {
+  .local-badge { display: none; }
   .local-badge { font-size: 10px; }
   .file-row { gap: 8px; }
   .file-info strong { font-size: 10px; }
