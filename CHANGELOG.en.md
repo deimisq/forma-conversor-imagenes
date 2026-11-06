@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.0] - 2026-11-06
+
+- Show offline release notes once on first launch after an update, in the saved language.
+
+- Safely close active conversions; cancel folder scans and report skipped paths.
+- Validate IPC and restrict navigation, windows, permissions and renderer resources.
+- Optimize large queues, retry failed files and persist conversion options.
+- Show output size and savings; retain the actual batch destination.
+- Improve keyboard navigation, accessible progress and reduced motion.
+- Test formats, animation, corrupt inputs, cancellation and safe close.
+
 ## [1.2.0] - 2026-10-28
 
 - Add instant Spanish/English switching with local SVG flags, ES/EN codes and keyboard support.

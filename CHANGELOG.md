@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## [1.3.0] - 2026-11-06
+
+- Muestra las novedades de la versión una sola vez al abrir la app después de actualizar; funciona sin conexión y respeta el idioma guardado.
+
+- Cierre seguro durante conversiones; búsqueda cancelable con errores visibles.
+- Valida IPC y restringe navegación, ventanas, permisos y recursos del renderer.
+- Optimiza las colas grandes, añade reintento de fallidos y recuerda las opciones.
+- Muestra el tamaño final y ahorro; conserva el destino real del lote.
+- Mejora el teclado, progreso accesible y movimiento reducido.
+- Amplía pruebas de formatos, animación, entradas corruptas, cancelación y cierre.
+
 ## [1.2.0] - 2026-10-28
 
 - Añade selector de idioma ES / EN con banderas SVG locales, accesibilidad por teclado y cambio inmediato sin reiniciar.

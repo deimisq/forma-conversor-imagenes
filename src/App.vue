@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { t as translate, defaultLanguage, isLanguage, type Language } from '../shared/locale'
 import LanguageFlag from './components/LanguageFlag.vue'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import formaLogo from './assets/forma-logo.svg'
 import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, Download, FileImage, FolderOpen, LoaderCircle, Plus, RefreshCw, RotateCw, Settings2, ShieldCheck, X } from '@lucide/vue'
 
@@ -51,6 +51,49 @@ const failureCount = ref(0)
 const cancelRequested = ref(false)
 const batchError = ref('')
 const formatMenuOpen = ref(false)
+const loadingFiles = ref(false)
+const inspectionErrors = ref<{ path: string; message: string }[]>([])
+const lastOutputDirectory = ref('')
+const batchTotal = ref(0)
+const summary = ref<{ inputBytes: number; outputBytes: number } | null>(null)
+const fileIndex = computed(() => new Map(files.value.map((file) => [file.path, file])))
+const failedPaths = ref(new Set<string>())
+const failedFiles = computed(() => [...failedPaths.value].map((path) => fileIndex.value.get(path)).filter((file): file is ImageFile => Boolean(file)))
+const preferencesReady = ref(false)
+watch([format, quality, outputDirectory], async () => {
+  if (!desktopApiAvailable || !preferencesReady.value) return
+  try { await window.imageDesk.setPreferences({ format: format.value, quality: quality.value, outputDir: outputDirectory.value }) }
+  catch { runtimeWarning.value = 'No se pudo guardar la configuración.' }
+})
+function showError(error: unknown) {
+  runtimeWarning.value = error instanceof Error ? error.message : t('No se pudo completar la operación.')
+}
+async function cancelInspection() {
+  try { await window.imageDesk.cancelInspection() } catch (error) { showError(error) }
+}
+async function formatKeydown(event: KeyboardEvent) {
+  const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape']
+  if (!keys.includes(event.key)) return
+  event.preventDefault()
+  const wrap = (event.currentTarget as HTMLElement)
+  if (event.key === 'Escape') {
+    formatMenuOpen.value = false
+    wrap.querySelector<HTMLButtonElement>('.format-select')?.focus()
+    return
+  }
+  formatMenuOpen.value = true
+  await nextTick()
+  const options = Array.from(wrap.querySelectorAll<HTMLButtonElement>('.format-option'))
+  const current = options.indexOf(document.activeElement as HTMLButtonElement)
+  const index = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : current < 0 ? formats.value.findIndex((item) => item.value === format.value) : (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length
+  options[index]?.focus()
+}
+function selectFormat(value: OutputFormat, event: MouseEvent) {
+  format.value = value
+  const wrap = (event.currentTarget as HTMLElement).closest('.format-select-wrap')
+  formatMenuOpen.value = false
+  wrap?.querySelector<HTMLButtonElement>('.format-select')?.focus()
+}
 const fileList = ref<HTMLDivElement | null>(null)
 const listHeight = ref(350)
 const listObserver = new ResizeObserver(([entry]) => { listHeight.value = entry.contentRect.height })
@@ -70,9 +113,9 @@ const formats = computed<{ value: OutputFormat; label: string; detail: string }[
 ])
 
 const totalBytes = computed(() => files.value.reduce((total, file) => total + file.size, 0))
-const completedCount = computed(() => files.value.filter((file) => file.status === 'done').length)
-const progressPercent = computed(() => files.value.length ? Math.round((progressCount.value / files.value.length) * 100) : 0)
-const canConvert = computed(() => files.value.length > 0 && !busy.value)
+const completedCount = ref(0)
+const progressPercent = computed(() => files.value.length ? Math.round((progressCount.value / (batchTotal.value || 1)) * 100) : 0)
+const canConvert = computed(() => desktopApiAvailable && preferencesReady.value && files.value.length > 0 && !busy.value && !loadingFiles.value)
 const currentFormat = computed(() => formats.value.find((item) => item.value === format.value) ?? formats.value[0])
 const firstVisibleIndex = computed(() => Math.min(Math.max(0, files.value.length - 1), Math.max(0, Math.floor(listScrollTop.value / rowHeight) - 4)))
 const visibleFiles = computed(() => files.value.slice(firstVisibleIndex.value, firstVisibleIndex.value + Math.ceil(listHeight.value / rowHeight) + 8))
@@ -97,49 +140,58 @@ function shortPath(value: string) {
 }
 
 async function addPaths(paths: string[]) {
-  if (!desktopApiAvailable || busy.value) return
-  const existing = new Set(files.value.map((file) => file.path.toLowerCase()))
-  const newPaths = paths.filter((file) => !existing.has(file.toLowerCase()))
-  if (!newPaths.length) return
-  const inspected = await window.imageDesk.inspectFiles(newPaths)
-  if (busy.value) return
-  const current = new Set(files.value.map((file) => file.path.toLowerCase()))
-  files.value.push(...inspected.filter((file) => {
-    const key = file.path.toLowerCase()
-    if (current.has(key)) return false
-    current.add(key)
-    return true
-  }).map((file) => ({ ...file, status: 'queued' as const })))
-  finished.value = false
+  if (!desktopApiAvailable || busy.value || loadingFiles.value || !paths.length) return
+  runtimeWarning.value = ''
+  loadingFiles.value = true
+  inspectionErrors.value = []
+  try {
+    const result = await window.imageDesk.inspectFiles(paths)
+    inspectionErrors.value = result.errors
+    const current = new Set(files.value.map((file) => file.path.toLowerCase()))
+    for (let offset = 0; offset < result.files.length; offset += 500) {
+      for (const file of result.files.slice(offset, offset + 500)) {
+        const key = file.path.toLowerCase()
+        if (!current.has(key)) {
+          current.add(key)
+          files.value.push({ ...file, status: 'queued' })
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    if (result.cancelled) runtimeWarning.value = 'Búsqueda detenida.'
+    finished.value = false
+  } catch (error) { showError(error) }
+  finally { loadingFiles.value = false }
 }
 
 async function chooseFiles() {
-  if (!desktopApiAvailable) return
-  await addPaths(await window.imageDesk.selectFiles())
+  if (!desktopApiAvailable || busy.value || loadingFiles.value) return
+  try { await addPaths(await window.imageDesk.selectFiles()) } catch (error) { showError(error) }
 }
-
 async function chooseFolder() {
-  if (!desktopApiAvailable) return
-  await addPaths(await window.imageDesk.selectFolder())
+  if (!desktopApiAvailable || busy.value || loadingFiles.value) return
+  try { await addPaths(await window.imageDesk.selectFolder()) } catch (error) { showError(error) }
 }
-
 async function chooseOutput() {
   if (!desktopApiAvailable || busy.value) return
-  const selected = await window.imageDesk.selectOutput()
-  if (selected && !busy.value) {
-    outputDirectory.value = selected
-    finished.value = false
-  }
+  try {
+    const selected = await window.imageDesk.selectOutput()
+    if (selected && !busy.value) outputDirectory.value = selected
+  } catch (error) { showError(error) }
 }
 
 function removeFile(filePath: string) {
-  if (busy.value) return
+  if (busy.value || loadingFiles.value) return
+  failedPaths.value.delete(filePath)
+  if (fileIndex.value.get(filePath)?.status === 'done') completedCount.value--
   files.value = files.value.filter((file) => file.path !== filePath)
 }
 
 function clearFiles() {
-  if (busy.value) return
+  if (busy.value || loadingFiles.value) return
   files.value = []
+  completedCount.value = 0
+  failedPaths.value.clear()
   finished.value = false
   progressCount.value = 0
   failureCount.value = 0
@@ -150,8 +202,14 @@ function updateListWindow(event: Event) {
   listScrollTop.value = (event.currentTarget as HTMLDivElement).scrollTop
 }
 
-async function startConversion() {
+async function startConversion(onlyFailed = false) {
   if (!canConvert.value) return
+  const selected = onlyFailed ? failedFiles.value : files.value
+  if (!selected.length) return
+  const selectedPaths = new Set(selected.map((file) => file.path))
+  batchTotal.value = selected.length
+  summary.value = null
+  lastOutputDirectory.value = outputDirectory.value
   busy.value = true
   finished.value = false
   cancelRequested.value = false
@@ -159,17 +217,22 @@ async function startConversion() {
   batchError.value = ''
   progressCount.value = 0
   failureCount.value = 0
-  files.value = files.value.map((file) => ({ ...file, status: 'queued', output: undefined, message: undefined }))
+  for (const path of selectedPaths) failedPaths.value.delete(path)
+  completedCount.value -= selected.filter((file) => file.status === 'done').length
+  files.value = files.value.map((file) => selectedPaths.has(file.path) ? { ...file, status: 'queued', output: undefined, message: undefined } : file)
   try {
     const result = await window.imageDesk.convert({
-      files: files.value.map((file) => file.path),
+      files: selected.map((file) => file.path),
       outputDir: outputDirectory.value,
       format: format.value,
       quality: quality.value,
     })
+    lastOutputDirectory.value = result.outputDir
+    summary.value = { inputBytes: result.inputBytes, outputBytes: result.outputBytes }
+    cancelRequested.value = result.cancelled
     progressCount.value = result.completed + result.failed
     failureCount.value = result.failed
-    if (result.cancelled) files.value = files.value.map((file) => file.status === 'queued' ? { ...file, status: 'cancelled' } : file)
+    if (result.cancelled) files.value = files.value.map((file) => selectedPaths.has(file.path) && file.status === 'queued' ? { ...file, status: 'cancelled' } : file)
   } catch (error) {
     batchError.value = error instanceof Error ? error.message : t('No se pudo iniciar la conversión.')
     failureCount.value = 1
@@ -181,11 +244,12 @@ async function startConversion() {
 
 async function cancelConversion() {
   cancelRequested.value = true
-  await window.imageDesk.cancel()
+  try { await window.imageDesk.cancel() }
+  catch (error) { cancelRequested.value = false; showError(error) }
 }
 
 async function openOutputFolder() {
-  await window.imageDesk.openFolder(outputDirectory.value)
+  try { await window.imageDesk.openFolder(lastOutputDirectory.value) } catch (error) { showError(error) }
 }
 
 async function runUpdateAction() {
@@ -205,8 +269,10 @@ function handleUpdateState(state: Parameters<Parameters<typeof window.imageDesk.
 
 function handleProgress(event: Parameters<Parameters<typeof window.imageDesk.onProgress>[0]>[0]) {
   if (event.type === 'file' && event.input) {
-    const file = files.value.find((item) => item.path === event.input)
+    const file = fileIndex.value.get(event.input)
     if (file && event.status) {
+      if (event.status === 'error') failedPaths.value.add(file.path)
+      if (event.status === 'done' && file.status !== 'done') completedCount.value++
       file.status = event.status as ImageFile['status']
       file.output = event.output
       file.message = event.message
@@ -234,10 +300,18 @@ onMounted(async () => {
     selectedLanguage.value = await window.imageDesk.getLanguage()
     appVersion.value = await window.imageDesk.getVersion()
     outputDirectory.value = await window.imageDesk.defaultOutput()
+    const saved = await window.imageDesk.getPreferences()
+    if (saved) {
+      format.value = saved.format
+      quality.value = saved.quality
+      if (saved.outputDir) outputDirectory.value = saved.outputDir
+    }
+    await nextTick()
+    preferencesReady.value = true
     removeProgressListener = window.imageDesk.onProgress(handleProgress)
     removeDropListener = window.imageDesk.onDroppedFiles((paths) => void addPaths(paths))
     removeUpdateListener = window.imageDesk.onUpdateState(handleUpdateState)
-    void window.imageDesk.checkForUpdates()
+    void window.imageDesk.checkForUpdates().catch(showError)
   } catch (error) {
     runtimeWarning.value = error instanceof Error ? error.message : 'No se pudo conectar con la aplicación de escritorio.'
   }
@@ -264,7 +338,7 @@ onBeforeUnmount(() => {
           <ChevronDown :size="12" aria-hidden="true" />
         </label>
         <span class="local-badge"><ShieldCheck :size="14" /> {{ t('Procesamiento local') }}</span>
-        <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading'" :aria-label="updateActionLabel" :title="updateState.message || updateActionLabel" @click="runUpdateAction">
+        <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading' || (busy && updateState.status === 'downloaded')" :aria-label="updateActionLabel" :title="updateState.message || updateActionLabel" @click="runUpdateAction">
           <LoaderCircle v-if="updateState.status === 'checking' || updateState.status === 'downloading'" :size="15" class="spin" />
           <Download v-else-if="updateState.status === 'available'" :size="15" />
           <RotateCw v-else-if="updateState.status === 'downloaded'" :size="15" />
@@ -289,11 +363,13 @@ onBeforeUnmount(() => {
         <section class="files-panel" :aria-label="t('Archivos para convertir')">
           <div class="panel-heading">
             <div class="heading-title"><h2>{{ t('Archivos') }}</h2><span class="count-badge">{{ files.length }}</span></div>
-            <button v-if="files.length && !busy" class="text-button" @click="clearFiles">{{ t('Vaciar lista') }}</button>
+            <button v-if="files.length && !busy && !loadingFiles" class="text-button" @click="clearFiles">{{ t('Vaciar lista') }}</button>
             <span v-else-if="busy" class="running-label"><LoaderCircle :size="14" class="spin" /> {{ t('Procesando') }}</span>
             <span v-else class="supported-label">{{ formatSize(totalBytes) }}</span>
           </div>
 
+          <div v-if="loadingFiles" class="runtime-warning" role="status"><LoaderCircle :size="16" class="spin" />{{ t('Buscando imágenes…') }}<button class="text-button" @click="cancelInspection">{{ t('Cancelar') }}</button></div>
+          <details v-if="inspectionErrors.length" class="inspection-errors"><summary>{{ t('Rutas omitidas') }}: {{ inspectionErrors.length }}</summary><p v-for="error in inspectionErrors" :key="error.path">{{ error.path }}: {{ error.message }}</p></details>
           <div v-if="!files.length" class="drop-zone" :class="{ 'is-dragging': dragActive }" @click="chooseFiles">
             <span class="drop-icon"><ArrowDownToLine :size="21" /></span>
             <strong>{{ t('Suelta tus imágenes aquí') }}</strong>
@@ -309,7 +385,7 @@ onBeforeUnmount(() => {
             <div class="virtual-spacer" :style="{ height: `${firstVisibleIndex * rowHeight}px` }"></div>
             <div v-for="(file, index) in visibleFiles" :key="file.path" class="file-row" :style="{ '--row-index': firstVisibleIndex + index }">
               <span class="file-icon" :class="`file-${file.status}`"><Check v-if="file.status === 'done'" :size="16" /><CircleAlert v-else-if="file.status === 'error'" :size="16" /><LoaderCircle v-else-if="file.status === 'converting'" :size="16" class="spin" /><FileImage v-else :size="17" /></span>
-              <span class="file-info"><strong :title="file.name">{{ file.name }}</strong><small :title="file.path">{{ file.message || shortPath(file.path) }}</small></span>
+              <span class="file-info"><strong :title="file.name">{{ file.name }}</strong><small :title="file.message || file.path">{{ file.message || shortPath(file.path) }}</small></span>
               <span class="file-size">{{ formatSize(file.size) }}</span>
               <button v-if="!busy" class="remove-button" :aria-label="`${t('Quitar')} ${file.name}`" @click="removeFile(file.path)"><X :size="15" /></button>
               <span v-else class="status-text" :class="`status-${file.status}`">{{ file.status === 'converting' ? t('Convirtiendo') : file.status === 'done' ? t('Listo') : file.status === 'error' ? t('Error') : file.status === 'cancelled' ? t('Cancelada') : t('En cola') }}</span>
@@ -325,14 +401,14 @@ onBeforeUnmount(() => {
           <div class="settings-heading"><span class="settings-icon"><Settings2 :size="17" /></span><h2>{{ t('Configuración') }}</h2></div>
           <div class="setting-block">
             <label class="setting-label">{{ t('Formato de salida') }}</label>
-            <div class="format-select-wrap">
-              <button class="format-select" :disabled="busy" :aria-expanded="formatMenuOpen" @click="formatMenuOpen = !formatMenuOpen">
+            <div class="format-select-wrap" @keydown="formatKeydown" @focusout="(event) => { if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) formatMenuOpen = false }">
+              <button class="format-select" :disabled="busy" :aria-expanded="formatMenuOpen" aria-haspopup="menu" aria-controls="format-menu" @click="formatMenuOpen = !formatMenuOpen">
                 <span class="format-symbol">{{ currentFormat.value === 'jpeg' ? 'JPG' : currentFormat.value.toUpperCase() }}</span>
                 <span class="format-name"><strong>{{ currentFormat.label }}</strong><small>{{ currentFormat.detail }}</small></span>
                 <ChevronDown :size="17" class="chevron" />
               </button>
-              <div v-if="formatMenuOpen" class="format-menu">
-                <button v-for="item in formats" :key="item.value" class="format-option" :class="{ selected: format === item.value }" @click="format = item.value; formatMenuOpen = false">
+              <div v-if="formatMenuOpen" id="format-menu" class="format-menu" role="menu" :aria-label="t('Formato de salida')">
+                <button v-for="item in formats" :key="item.value" class="format-option" role="menuitemradio" :aria-checked="format === item.value" :class="{ selected: format === item.value }" @click="selectFormat(item.value, $event)">
                   <span class="format-symbol">{{ item.value === 'jpeg' ? 'JPG' : item.value.toUpperCase() }}</span><span class="format-name"><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></span><Check v-if="format === item.value" :size="16" />
                 </button>
               </div>
@@ -353,11 +429,13 @@ onBeforeUnmount(() => {
           <div class="settings-spacer"></div>
           <p v-if="batchError" class="runtime-warning" role="alert">{{ batchError }}</p>
           <div v-if="busy || finished" class="progress-area">
-            <div class="progress-heading"><span :title="batchError">{{ busy ? (cancelRequested ? t('Deteniendo…') : t('Convirtiendo imágenes')) : cancelRequested ? t('Conversión detenida') : failureCount ? t('Conversión finalizada') : t('Todo listo') }}</span><span>{{ progressCount }} / {{ files.length }}</span></div>
-            <div class="progress-track"><span :style="{ width: `${progressPercent}%` }"></span></div>
+            <div class="progress-heading" role="status" aria-live="polite"><span :title="batchError">{{ busy ? (cancelRequested ? t('Deteniendo…') : t('Convirtiendo imágenes')) : cancelRequested ? t('Conversión detenida') : failureCount ? t('Conversión finalizada') : t('Todo listo') }}</span><span>{{ progressCount }} / {{ batchTotal }}</span></div>
+            <div class="progress-track" role="progressbar" :aria-label="t('Convirtiendo imágenes')" :aria-valuenow="progressCount" :aria-valuemin="0" :aria-valuemax="batchTotal"><span :style="{ width: `${progressPercent}%` }"></span></div>
           </div>
           <button v-if="busy" class="convert-button cancel-button" @click="cancelConversion"><X :size="17" /> {{ t('Cancelar conversión') }}</button>
-          <button v-else class="convert-button" :disabled="!desktopApiAvailable || !canConvert" @click="startConversion"><ArrowDownToLine :size="17" /> {{ t('Convertir') }} {{ files.length ? `${files.length} ${files.length === 1 ? t('imagen') : t('imágenes')}` : t('imágenes') }} <ArrowRight :size="16" class="button-arrow" /></button>
+          <button v-else class="convert-button" :disabled="!desktopApiAvailable || !canConvert" @click="startConversion()"><ArrowDownToLine :size="17" /> {{ t('Convertir') }} {{ files.length ? `${files.length} ${files.length === 1 ? t('imagen') : t('imágenes')}` : t('imágenes') }} <ArrowRight :size="16" class="button-arrow" /></button>
+          <p v-if="finished && summary && summary.inputBytes" class="conversion-summary" role="status">{{ t('Tamaño final') }}: {{ formatSize(summary.outputBytes) }} · {{ summary.outputBytes <= summary.inputBytes ? t('Ahorro') : t('Aumento') }}: {{ Math.abs(Math.round((1 - summary.outputBytes / summary.inputBytes) * 100)) }}%</p>
+          <button v-if="!busy && failedFiles.length" class="open-folder-button" :disabled="loadingFiles" @click="startConversion(true)">{{ t('Reintentar fallidos') }} ({{ failedFiles.length }})</button>
           <button v-if="finished && completedCount" class="open-folder-button" @click="openOutputFolder"><FolderOpen :size="15" /> {{ t('Abrir carpeta de destino') }}</button>
         </aside>
       </div>

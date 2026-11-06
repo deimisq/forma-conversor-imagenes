@@ -6,7 +6,7 @@ Forma se distribuye bajo la licencia [GNU GPL v3.0](LICENSE).
 
 Consulta la [Política de privacidad](PRIVACY.md) de la aplicación.
 
-**Versión actual: 1.2.0** · [English documentation](README.en.md) · [Preparación de Microsoft Store](STORE_RELEASE.md)
+**Versión actual: 1.3.0** · [English documentation](README.en.md) · [Preparación de Microsoft Store](STORE_RELEASE.md)
 
 ## Requisitos
 
@@ -31,7 +31,7 @@ npm run build:app:en
 npm run build:en
 ```
 
-El último comando genera NSIS y APPX en `release/1.2.0/en/`, con el nombre
+El último comando genera NSIS y APPX en `release/1.3.0/en/`, con el nombre
 **Forma Image Converter**. `npm run build` conserva los paquetes en español.
 Ambas compilaciones comparten los directorios intermedios; compílalas secuencialmente.
 
@@ -70,7 +70,7 @@ npm run build:app
 npm run build
 ```
 
-El instalador NSIS x64 y el APPX se generan en `release/1.2.0/`.
+El instalador NSIS x64 y el APPX se generan en `release/1.3.0/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
 
@@ -87,7 +87,7 @@ El instalador estándar gestiona la actualización de una instalación existente
 
 Cada tag `vX.Y.Z` ejecuta pruebas y `npm run release:all` en GitHub Actions. Publica ambos instaladores x64, ambos APPX y los metadatos `latest.yml` y `en.yml` en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). Descarga `forma-setup-X.Y.Z.exe` para iniciar en español o `forma-setup-en-X.Y.Z.exe` para iniciar en inglés.
 
-Si está configurado Cloudflare R2, el workflow también sube una copia versionada (`forma-setup-X.Y.Z.exe`) y reemplaza `forma-setup-latest.exe`. Para Microsoft Store se registra una sola vez la URL pública directa `R2_PUBLIC_BASE_URL/forma-setup-latest.exe`; no hay que editar el enlace de Store en cada versión.
+Si está configurado Cloudflare R2, el workflow también sube una copia versionada (`forma-setup-X.Y.Z.exe`) y reemplaza `forma-setup-latest.exe`. Para Microsoft Store se registra la URL versionada `R2_PUBLIC_BASE_URL/forma-setup-X.Y.Z.exe` y se actualiza en Partner Center para cada entrega. El binario enviado debe permanecer inmutable; los alias `latest` son para descargas generales.
 
 La variante inglesa usa `forma-setup-en-X.Y.Z.exe` y `forma-setup-en-latest.exe`.
 También se copian los APPX con la misma nomenclatura. Se comprueba que existan los
@@ -116,7 +116,7 @@ Para habilitarlo, crea un bucket R2 con acceso público mediante un dominio pers
 - Variable `R2_PUBLIC_BASE_URL`: URL pública HTTPS directa del bucket, sin barra final ni redirección.
 - Secretos `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`: credenciales S3 de R2 con permiso de escritura solo en ese bucket.
 
-Después de configurar esos valores y ejecutar el workflow con un tag, usa `R2_PUBLIC_BASE_URL/forma-setup-latest.exe` como URL del paquete en Microsoft Store. La primera versión requiere una publicación etiquetada nueva o volver a ejecutar el workflow para copiar el instalador existente.
+Después de configurar esos valores y ejecutar el workflow con un tag, usa la URL versionada `R2_PUBLIC_BASE_URL/forma-setup-X.Y.Z.exe` como URL del paquete en Microsoft Store y comprueba los requisitos de firma de [STORE_RELEASE.md](STORE_RELEASE.md). La primera versión requiere una publicación etiquetada nueva o volver a ejecutar el workflow para copiar el instalador existente.
 
 Al ejecutar el instalador con Forma ya instalada, NSIS usa el mismo identificador de producto para reconocerla y actualizar sus archivos en la ubicación seleccionada. Los datos de usuario y las imágenes convertidas se conservan.
 
@@ -137,3 +137,9 @@ La cola convierte hasta tres imágenes en paralelo, actualiza cada estado por se
 Sharp puede leer los formatos de imagen que tengan soporte en su build de libvips. La aplicación acepta JPEG, PNG, WebP, AVIF, TIFF, GIF, BMP, SVG y HEIC/HEIF como entradas; un codec puede faltar para ciertos archivos y el error se informa en la cola.
 
 Los formatos de salida disponibles son JPEG, PNG, WebP, AVIF, TIFF y GIF. La calidad ajustable aplica a los formatos con pérdida; PNG y TIFF usan sus opciones predeterminadas. Convertir una animación a un formato estático conserva el primer fotograma.
+
+## Mejoras de la versión 1.3
+
+La configuración de formato, calidad y destino se conserva entre sesiones. La búsqueda de carpetas se puede cancelar e informa las rutas inaccesibles. Al finalizar se muestra el tamaño de salida y el ahorro (o aumento) del último lote; puedes reintentar solo los archivos fallidos. Abrir destino utiliza la carpeta del último lote aunque cambies la selección. Si cierras Forma durante una conversión, se detiene la cola y se espera a los archivos activos antes de salir.
+
+Después de actualizar, Forma muestra una sola vez un diálogo con la versión, fecha y novedades en el idioma guardado. No requiere conexión; las instalaciones nuevas no muestran este aviso.

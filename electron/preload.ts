@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('imageDesk', {
+  getPreferences: () => ipcRenderer.invoke('preferences:read'),
+  setPreferences: (value: unknown) => ipcRenderer.invoke('preferences:write', value),
+  cancelInspection: () => ipcRenderer.invoke('files:cancel-inspection'),
   getVersion: () => ipcRenderer.invoke('app:version'),
   getLanguage: () => ipcRenderer.invoke('app:language'),
   setLanguage: (language: 'es' | 'en') => ipcRenderer.invoke('app:set-language', language),

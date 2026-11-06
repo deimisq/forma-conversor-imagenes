@@ -1,6 +1,6 @@
 # Forma | Image Converter
 
-**Version 1.2.0** · [Español](README.md) · [Privacy policy](PRIVACY.en.md) · [Microsoft Store release guide](STORE_RELEASE.md)
+**Version 1.3.0** · [Español](README.md) · [Privacy policy](PRIVACY.en.md) · [Microsoft Store release guide](STORE_RELEASE.md)
 
 Forma is a Windows desktop app for local batch image conversion, built with Vue 3,
 TypeScript, Electron and Sharp. Licensed under [GNU GPL v3.0](LICENSE).
@@ -46,8 +46,8 @@ npm run build:all
 ```
 
 The first two commands compile without packaging. `build:all` sequentially builds
-both NSIS and APPX variants. Standard packages go to `release/1.2.0/`, English packages
-to `release/1.2.0/en/`. The variants share intermediate build directories; never build
+both NSIS and APPX variants. Standard packages go to `release/1.3.0/`, English packages
+to `release/1.3.0/en/`. The variants share intermediate build directories; never build
 them concurrently. Individual packaging commands are `npm run build` and `npm run build:en`.
 
 Packages retain the same application and Store identity and replace the existing
@@ -71,7 +71,7 @@ of an animation. Processing stays on your computer.
 
 ## Distribution and updates
 
-Tags matching the package version, such as `v1.2.0`, run tests and publish both
+Tags matching the package version, such as `v1.3.0`, run tests and publish both
 variants through `npm run release:all` in GitHub Actions. Downloads are available in
 [GitHub Releases](https://github.com/deimisq/forma-conversor-imagenes/releases).
 NSIS uses separate update feeds: `latest.yml` for the standard installer, `en.yml`
@@ -88,3 +88,9 @@ NSIS supports `/S` for silent installation and a final `/D=<path>` argument.
 Exit code `0` means success; code `2` means the previous version could not be
 uninstalled correctly. The local installers are unsigned. Keep package and lockfile
 versions synchronized, update both changelogs, validate packages, then publish the tag.
+
+## Version 1.3 improvements
+
+Format, quality and destination persist between sessions. Folder scanning can be cancelled and reports inaccessible paths. Results show output size and savings (or growth) for the last batch; failed files can be retried separately. Open output uses the last batch destination. Closing during conversion stops queued work and waits for active files before exiting.
+
+After an update, Forma shows a one-time dialog with the installed version, release date and notes in the saved language. It works offline and does not appear on fresh installs. For EXE Store submissions, use a versioned, immutable download URL and follow the signing requirements in [STORE_RELEASE.md](STORE_RELEASE.md); latest aliases are for general downloads.

@@ -185,3 +185,9 @@ input[type='range'] { width: 100%; height: 4px; margin: 15px 0 8px; accent-color
   .settings-spacer { min-height: 8px; }
   .bottom-note { padding-top: 9px; }
 }
+
+.inspection-errors { max-height: 110px; overflow: auto; padding: 8px 22px; font-size: 11px; color: #925537; overflow-wrap: anywhere; }
+.conversion-summary { font-size: 11px; color: var(--green); margin: 8px 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.settings-panel { overflow-y: auto; }

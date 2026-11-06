@@ -14,6 +14,23 @@ export function setLanguage(value: Language): void {
 }
 
 const english: Record<string, string> = {
+  'Novedades de Forma': "What's new in Forma",
+  'Forma se actualizó a la versión': 'Forma has been updated to version',
+  'Entendido': 'Got it',
+  "No se pudo leer el archivo.": "Could not read the file.",
+  "Carpeta inválida.": "Invalid folder.",
+  "Rutas inválidas.": "Invalid paths.",
+  "Ya hay una búsqueda en curso.": "A search is already running.",
+  "No se pudo guardar la configuración.": "Could not save settings.",
+  "No se pudo completar la operación.": "Could not complete the operation.",
+  "Búsqueda detenida.": "Search stopped.",
+  "Buscando imágenes…": "Searching for images…",
+  "Cancelar": "Cancel",
+  "Rutas omitidas": "Skipped paths",
+  "Tamaño final": "Output size",
+  "Ahorro": "Saved",
+  "Aumento": "Increase",
+  "Reintentar fallidos": "Retry failed files",
   'Idioma': 'Language',
   'No se pudo guardar el idioma.': 'Could not save your language preference.',
   'Ligero y moderno': 'Lightweight and modern',

@@ -1,9 +1,11 @@
-import { t, defaultLanguage, isLanguage, setLanguage } from '../shared/locale'
-import { readLanguage, writeLanguage } from './preferences'
+import { t, language, defaultLanguage, isLanguage, setLanguage } from '../shared/locale'
+import { currentRelease } from '../shared/release'
+import { consumeReleaseNotice } from './release-notice'
+import { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences } from './preferences'
 import { reserveOutput } from './output'
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import fs from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import sharp from 'sharp'
 import electronUpdater from 'electron-updater'
@@ -34,6 +36,10 @@ let win: BrowserWindow | null
 const supportedInputs = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.heic', '.heif'])
 let cancelRequested = false
 let conversionInProgress = false
+let closeAfterConversion = false
+let inspectionCancelled = false
+let inspectionInProgress = false
+let releaseNoticePending = false
 const storeManaged = process.windowsStore === true
 let updateCheckInProgress = false
 const updateCheckInterval = 6 * 60 * 60 * 1000
@@ -86,22 +92,27 @@ autoUpdater.on('error', (error) => sendUpdateState({ status: 'error', message: e
 type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
 type ConversionOptions = { files: string[]; outputDir: string; format: OutputFormat; quality: number }
 
-async function collectImages(paths: string[]): Promise<string[]> {
+async function collectImages(paths: string[], errors: { path: string; message: string }[]): Promise<string[]> {
   const images: string[] = []
   const pending = [...paths]
+  const visited = new Set<string>()
   while (pending.length) {
+    if (inspectionCancelled) break
     const current = pending.pop()!
     try {
       const info = await fs.stat(current)
       if (info.isDirectory()) {
+        const canonical = (await fs.realpath(current)).toLowerCase()
+        if (visited.has(canonical)) continue
+        visited.add(canonical)
         const entries = await fs.readdir(current, { withFileTypes: true })
         for (const entry of entries) {
           if (entry.isDirectory()) pending.push(path.join(current, entry.name))
           else if (entry.isFile() && supportedInputs.has(path.extname(entry.name).toLowerCase())) images.push(path.join(current, entry.name))
         }
       } else if (info.isFile() && supportedInputs.has(path.extname(current).toLowerCase())) images.push(current)
-    } catch {
-      // Inaccessible paths are skipped; individual conversion errors are reported later.
+    } catch (error) {
+      errors.push({ path: current, message: error instanceof Error ? error.message : t('No se pudo leer el archivo.') })
     }
   }
   return [...new Set(images)]
@@ -119,7 +130,7 @@ async function convertBatch(options: ConversionOptions) {
   await fs.mkdir(outputDir, { recursive: true })
   let nextIndex = 0
   let completed = 0
-  const totals = { total: files.length, completed: 0, failed: 0, cancelled: false }
+  const totals = { total: files.length, completed: 0, failed: 0, cancelled: false, outputDir, inputBytes: 0, outputBytes: 0 }
   sendProgress({ type: 'start', ...totals })
 
   const worker = async () => {
@@ -137,10 +148,13 @@ async function convertBatch(options: ConversionOptions) {
         let pipeline = sharp(input, { animated: options.format === 'gif' }).rotate()
         if (options.format === 'jpeg') pipeline = pipeline.flatten({ background: '#ffffff' })
         const encoder = pipeline.toFormat(options.format, options.format === 'png' || options.format === 'tiff' ? {} : { quality: options.quality })
-        await encoder.toFile(output)
+        const result = await encoder.toFile(output)
+        const inputSize = (await fs.stat(input)).size
+        totals.inputBytes += inputSize
+        totals.outputBytes += result.size
         completed++
         totals.completed = completed
-        sendProgress({ type: 'file', input, output, status: 'done' })
+        sendProgress({ type: 'file', input, output, outputSize: result.size, status: 'done' })
       } catch (error) {
         if (output) await fs.unlink(output).catch(() => {})
         totals.failed++
@@ -155,23 +169,33 @@ async function convertBatch(options: ConversionOptions) {
   return totals
 }
 
-ipcMain.handle('files:select', async () => {
+function handle(channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown) {
+  ipcMain.handle(channel, (event, ...args) => {
+    const expected = VITE_DEV_SERVER_URL || pathToFileURL(path.join(RENDERER_DIST, 'index.html')).href
+    if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== expected) throw new Error('Untrusted IPC sender')
+    return listener(event, ...args)
+  })
+}
+handle('preferences:read', () => readConversionPreferences(app.getPath('userData')))
+handle('preferences:write', (_event, value: unknown) => writeConversionPreferences(app.getPath('userData'), value))
+
+handle('files:select', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: [{ name: t('Imágenes'), extensions: [...supportedInputs].map((extension) => extension.slice(1)) }] })
   return result.canceled ? [] : result.filePaths
 })
 
-ipcMain.handle('files:select-folder', async () => {
+handle('files:select-folder', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
   return result.canceled ? [] : result.filePaths
 })
 
-ipcMain.handle('folder:select-output', async () => {
+handle('folder:select-output', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
   return result.canceled ? null : result.filePaths[0]
 })
-ipcMain.handle('folder:default-output', () => path.join(app.getPath('pictures'), t('Imagenes convertidas')))
+handle('folder:default-output', () => path.join(app.getPath('pictures'), t('Imagenes convertidas')))
 
-ipcMain.handle('conversion:start', async (_event, options: ConversionOptions) => {
+handle('conversion:start', async (_event, options: ConversionOptions) => {
   if (conversionInProgress) throw new Error(t('Ya hay una conversión en curso.'))
   if (!options || !Array.isArray(options.files) || !options.files.every((file) => typeof file === 'string' && path.isAbsolute(file)) ||
       typeof options.outputDir !== 'string' || (options.outputDir && !path.isAbsolute(options.outputDir)) ||
@@ -184,14 +208,19 @@ ipcMain.handle('conversion:start', async (_event, options: ConversionOptions) =>
     return await convertBatch(options)
   } finally {
     conversionInProgress = false
+    if (closeAfterConversion) win?.close()
   }
 })
-ipcMain.handle('conversion:cancel', () => { cancelRequested = true })
-ipcMain.handle('folder:open', (_event, folder: string) => shell.openPath(folder))
-ipcMain.handle('app:version', () => app.getVersion())
-ipcMain.handle('app:language', () => readLanguage(app.getPath('userData')))
+handle('conversion:cancel', () => { cancelRequested = true })
+handle('folder:open', async (_event, folder: unknown) => {
+  if (typeof folder !== 'string' || !path.isAbsolute(folder) || !(await fs.stat(folder)).isDirectory()) throw new Error(t('Carpeta inválida.'))
+  const error = await shell.openPath(folder)
+  if (error) throw new Error(error)
+})
+handle('app:version', () => app.getVersion())
+handle('app:language', () => readLanguage(app.getPath('userData')))
 let savingLanguage = false
-ipcMain.handle('app:set-language', async (_event, value: unknown) => {
+handle('app:set-language', async (_event, value: unknown) => {
   if (!isLanguage(value) || savingLanguage) throw new Error(t('No se pudo guardar el idioma.'))
   savingLanguage = true
   try {
@@ -203,29 +232,43 @@ ipcMain.handle('app:set-language', async (_event, value: unknown) => {
     savingLanguage = false
   }
 })
-ipcMain.handle('updates:check', () => checkForUpdates())
-ipcMain.handle('updates:download', async () => {
+handle('updates:check', () => checkForUpdates())
+handle('updates:download', async () => {
   if (!app.isPackaged || storeManaged) return
   sendUpdateState({ status: 'downloading', percent: 0 })
   await autoUpdater.downloadUpdate()
 })
-ipcMain.handle('updates:install', () => {
+handle('updates:install', () => {
   if (!app.isPackaged || storeManaged || conversionInProgress) return
   autoUpdater.quitAndInstall(false, true)
 })
 
-ipcMain.handle('files:inspect', async (_event, filePaths: string[]) => {
-  const files = await collectImages(filePaths)
-  const inspected: { path: string; name: string; size: number }[] = []
-  for (let start = 0; start < files.length; start += 200) {
-    const batch = files.slice(start, start + 200)
-    const metadata = await Promise.all(batch.map(async (file) => {
-      const stats = await fs.stat(file).catch(() => null)
-      return { path: file, name: path.basename(file), size: stats?.size ?? 0 }
-    }))
-    inspected.push(...metadata)
-  }
-  return inspected
+handle('files:cancel-inspection', () => { inspectionCancelled = true })
+handle('files:inspect', async (_event, filePaths: string[]) => {
+  if (!Array.isArray(filePaths) || !filePaths.every((file) => typeof file === 'string' && path.isAbsolute(file))) throw new Error(t('Rutas inválidas.'))
+  if (inspectionInProgress) throw new Error(t('Ya hay una búsqueda en curso.'))
+  inspectionInProgress = true
+  inspectionCancelled = false
+  const errors: { path: string; message: string }[] = []
+  try {
+    const files = await collectImages(filePaths, errors)
+    const inspected: { path: string; name: string; size: number }[] = []
+    for (let start = 0; start < files.length; start += 200) {
+      if (inspectionCancelled) break
+      const batch = files.slice(start, start + 200)
+      const metadata = await Promise.all(batch.map(async (file) => {
+        try {
+          const stats = await fs.stat(file)
+          return { path: file, name: path.basename(file), size: stats.size }
+        } catch (error) {
+          errors.push({ path: file, message: error instanceof Error ? error.message : t('No se pudo leer el archivo.') })
+          return null
+        }
+      }))
+      for (const file of metadata) if (file) inspected.push(file)
+    }
+    return { files: inspected, errors, cancelled: inspectionCancelled }
+  } finally { inspectionInProgress = false }
 })
 
 function createWindow() {
@@ -243,12 +286,38 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
     },
   })
   win.setMenuBarVisibility(false)
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.webContents.on('will-navigate', (event) => event.preventDefault())
+  win.webContents.on('will-attach-webview', (event) => event.preventDefault())
+  win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
+  win.on('close', (event) => {
+    if (!conversionInProgress) return
+    event.preventDefault()
+    // Stop queued work, finish active encoders, then close without partial files.
+    closeAfterConversion = true
+    cancelRequested = true
+  })
   win.once('ready-to-show', () => {
     win?.maximize()
     win?.show()
+    if (releaseNoticePending && win) {
+      releaseNoticePending = false
+      const date = new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'es-UY', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${currentRelease.date}T00:00:00Z`))
+      void dialog.showMessageBox(win, {
+        type: 'info',
+        title: `${t('Novedades de Forma')} ${app.getVersion()}`,
+        message: `${t('Forma se actualizó a la versión')} ${app.getVersion()}`,
+        detail: `${date}\n\n${currentRelease.notes[language].map((note) => `• ${note}`).join('\n\n')}`,
+        buttons: [t('Entendido')],
+        defaultId: 0,
+        noLink: true,
+      }).catch((error) => console.error('Release notice:', error))
+    }
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -279,6 +348,12 @@ app.on('activate', () => {
 
 app.whenReady().then(async () => {
   setLanguage(await readLanguage(app.getPath('userData')))
+  try {
+    releaseNoticePending = await consumeReleaseNotice(app.getPath('userData'), app.getVersion())
+  } catch (error) {
+    // A read-only profile must never prevent the app from opening.
+    console.error('Release notice state:', error)
+  }
   Menu.setApplicationMenu(null)
   createWindow()
   if (app.isPackaged && !storeManaged) {
