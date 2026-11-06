@@ -1,5 +1,27 @@
 # Entrega 1.3.0 a Microsoft Store
 
+## Pendiente para la próxima versión
+
+- [ ] Hacer que el botón «Buscar actualizaciones» consulte el canal correspondiente
+  al origen de instalación: GitHub Releases para el instalador descargado desde GitHub;
+  Microsoft Store para las instalaciones procedentes de Microsoft Store.
+- [ ] En GitHub, conservar los canales de instalador español e inglés, comparar la versión
+  instalada con la publicada y mantener la descarga e instalación mediante electron-updater.
+- [ ] En Microsoft Store, consultar las actualizaciones del producto mediante el mecanismo
+  de Store compatible con el paquete; mostrar el resultado y permitir continuar desde Store.
+  No descargar ni instalar un EXE de GitHub sobre una instalación administrada por Store.
+- [ ] Distinguir el origen real de instalación del idioma y del lugar donde se publica
+  el binario. La detección actual usa `process.windowsStore` para APPX; no asumir que
+  identifica también un EXE instalado desde una ficha de Microsoft Store. Verificar y
+  definir esa detección antes de implementar soporte para fichas EXE.
+- [ ] Probar instalación desde GitHub y desde Store, con y sin actualización disponible,
+  sin conexión, y cambio de idioma, comprobando que nunca se crucen los canales.
+
+Estado en 1.3.0: GitHub se consulta desde la app en instalaciones NSIS. En APPX,
+el botón solo informa que las actualizaciones se gestionan desde Microsoft Store;
+todavía no realiza una consulta a Store. Estos requisitos quedan pendientes y no
+forman parte del tag `v1.3.0`.
+
 Esta entrega incluye cierre seguro, búsqueda cancelable, reintento de fallidos,
 preferencias de conversión, resumen de ahorro y un aviso de novedades después de actualizar.
 La app sigue incluyendo español e inglés y procesa las imágenes localmente.
