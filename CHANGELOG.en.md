@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0] - In preparation, unpublished
+
+- Include all tools in one free application.
+- Resize by width, height, percentage and bounds while preserving proportions.
+- Create, apply, update and delete persistent custom presets.
+- Preserve subfolders and rename using prefixes, suffixes and numbering without overwriting results.
+- Add text or image watermarks and preview without modifying originals.
+- Target JPEG, WebP and AVIF file sizes; reduce dimensions only with permission and report unreachable limits.
+- Watch folders during the session, wait for stable files and finish active conversions before closing.
+- Detect the system language on first launch and remember the user's subsequent choice.
+- Query Store for APPX updates and retain GitHub updates for EXE installations.
+- Migrate preferences and extend tools, error, keyboard and safe closing tests.
+
+Publication gates and remaining validation: [release criteria](V2_RELEASE.md).
+
 ## [1.3.0] - 2026-11-06
 
 - Show offline release notes once on first launch after an update, in the saved language.

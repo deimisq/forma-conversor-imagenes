@@ -4,6 +4,14 @@ export type Language = 'es' | 'en'
 export const defaultLanguage: Language = __APP_LANGUAGE__ === 'en' ? 'en' : 'es'
 export let language: Language = defaultLanguage
 
+export function systemLanguage(locales: readonly string[]): Language {
+  for (const locale of locales) {
+    const base = locale.toLowerCase().split(/[-_]/)[0]
+    if (base === 'es' || base === 'en') return base
+  }
+  return 'en'
+}
+
 export function isLanguage(value: unknown): value is Language {
   return value === 'es' || value === 'en'
 }
@@ -14,6 +22,11 @@ export function setLanguage(value: Language): void {
 }
 
 const english: Record<string, string> = {
+  'Esta versión de prueba no recibe actualizaciones.': 'This preview build does not receive updates.',
+  'Abrir Microsoft Store': 'Open Microsoft Store',
+  'Hay actualizaciones en Microsoft Store.': 'Updates are available in Microsoft Store.',
+  'No hay actualizaciones disponibles en Microsoft Store.': 'No updates are available in Microsoft Store.',
+  'No se pudo consultar Microsoft Store.': 'Could not check Microsoft Store.',
   'Novedades de Forma': "What's new in Forma",
   'Forma se actualizó a la versión': 'Forma has been updated to version',
   'Entendido': 'Got it',

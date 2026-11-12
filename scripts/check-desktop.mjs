@@ -1,5 +1,5 @@
 // Run with Electron after build:app; the test window stays hidden and uses isolated data.
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog, shell, ipcMain } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import assert from 'node:assert/strict'
@@ -8,11 +8,14 @@ import sharp from 'sharp'
 async function main() {
 app.disableHardwareAcceleration()
 const initialLanguage = process.argv[2] ?? 'es'
+// Simulate the system language independently of the installer language.
+app.getPreferredSystemLanguages = () => [initialLanguage === 'en' ? 'en-US' : 'es-UY']
 const directory = process.env.FORMA_TEST_DIRECTORY
 assert.ok(directory, 'Run through npm run test:desktop or test:desktop:en')
 app.setPath('userData', path.join(directory, 'settings'))
 await fs.mkdir(app.getPath('userData'), { recursive: true })
-await fs.writeFile(path.join(app.getPath('userData'), 'release-notice.json'), JSON.stringify({ version: '1.2.0' }))
+await fs.writeFile(path.join(app.getPath('userData'), 'preferences.json'), JSON.stringify({ conversion: { format: 'webp', quality: 87, outputDir: '' } }))
+await fs.writeFile(path.join(app.getPath('userData'), 'release-notice.json'), JSON.stringify({ version: '1.3.0' }))
 const releaseNotices = []
 const originalMessageBox = dialog.showMessageBox
 // Capture the native notice without showing an interactive dialog in CI.
@@ -27,6 +30,7 @@ let testWindow
 const loaded = new Promise((resolve, reject) => {
   app.once('browser-window-created', (_event, window) => {
     testWindow = window
+    window.webContents.setBackgroundThrottling(false)
     window.webContents.once('did-finish-load', resolve)
     window.webContents.once('did-fail-load', (_event, code, description) => reject(new Error(`${code}: ${description}`)))
     window.webContents.on('preload-error', (_event, preload, error) => console.error('Preload error:', preload, error))
@@ -48,9 +52,11 @@ try {
     poll();
   })`)
   await evaluate('new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  const migratedSettings = await evaluate('window.imageDesk.loadTools()')
+  assert.equal(migratedSettings.preferences.quality, 87, 'Legacy conversion quality must migrate without loss')
   assert.equal(releaseNotices.length, 1, 'An upgrade must show exactly one native release notice')
   assert.ok(releaseNotices[0].message.includes(app.getVersion()))
-  assert.ok(releaseNotices[0].detail.includes(initialLanguage === 'en' ? 'Retry only failed files' : 'Reintenta únicamente'))
+  assert.ok(releaseNotices[0].detail.includes(initialLanguage === 'en' ? 'Resize by width' : 'Redimensiona por ancho'))
   assert.equal(JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'release-notice.json'), 'utf8')).version, app.getVersion())
   assert.equal(await evaluate('window.imageDesk.getLanguage()'), initialLanguage)
   for (const language of ['en', 'es']) {
@@ -83,6 +89,22 @@ try {
     })`)
   }
   assert.equal(releaseNotices.length, 1, 'Language changes and reloads must not repeat release notes')
+  stage = 'routing APPX update actions'
+  ipcMain.removeHandler('updates:download')
+  ipcMain.handle('updates:download', () => { throw new Error('APPX must never download a GitHub EXE') })
+  ipcMain.removeHandler('updates:open-store')
+  for (const status of ['available', 'error']) {
+    const opened = new Promise((resolve) => ipcMain.handle('updates:open-store', () => resolve(true)))
+    for (let attempt = 0; attempt < 100; attempt++) {
+      testWindow.webContents.send('updates:state', { source: 'store', status, message: 'Hay actualizaciones en Microsoft Store.' })
+      await evaluate(`new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`)
+      if (await evaluate("document.querySelector('.update-action span').textContent === 'Abrir Microsoft Store'")) break
+    }
+    assert.equal(await evaluate("document.querySelector('.update-action span').textContent"), 'Abrir Microsoft Store')
+    await evaluate("document.querySelector('.update-action').click()")
+    assert.equal(await opened, true, 'APPX action must open Store instead of the GitHub downloader')
+    ipcMain.removeHandler('updates:open-store')
+  }
   const inputs = []
   stage = 'converting images through IPC'
   for (const folder of ['a', 'b']) {
@@ -180,6 +202,82 @@ try {
     shell.openPath = originalOpenPath
   }
 
+  stage = 'validating Forma 2.0 tools through IPC and UI'
+  const toolData = await evaluate('window.imageDesk.loadTools()')
+  const defaults = toolData.preferences
+  const custom = { ...defaults, format: 'png', quality: 84, resize: { ...defaults.resize, mode: 'width', width: 2 }, preserveFolders: true, naming: { ...defaults.naming, enabled: true, numbered: true, keepOriginalName: false, prefix: 'v2-', start: 7 }, watermark: { ...defaults.watermark, mode: 'none' }, target: { ...defaults.target, enabled: false } }
+  const presetData = await evaluate('window.imageDesk.savePreset(' + JSON.stringify({ name: 'Desktop V2', settings: custom }) + ')')
+  assert.ok(presetData.presets.some(item => item.name === 'Desktop V2'))
+  const preview = await evaluate('window.imageDesk.preview(' + JSON.stringify({ ...custom, files: [inputs[0]], outputDir }) + ')')
+  assert.equal(preview.width, 2)
+  assert.equal(preview.filename, 'v2-007.png')
+  const toolRoot = path.dirname(inputs[0])
+  const toolsOutput = path.join(directory, 'v2-tools')
+  const toolsResult = await evaluate('window.imageDesk.convert(' + JSON.stringify({ ...custom, files: [inputs[0]], sourceRoots: { [inputs[0]]: toolRoot }, sequence: [4], outputDir: toolsOutput }) + ')')
+  assert.equal(toolsResult.completed, 1)
+  const named = path.join(toolsOutput, path.basename(toolRoot), 'v2-011.png')
+  assert.equal((await sharp(named).metadata()).width, 2)
+  await evaluate('document.querySelector(".tools-open").click()')
+  await pollUi('document.querySelector(".tools-dialog")?.open === true')
+  assert.ok((await evaluate('document.querySelector(".tools-dialog").textContent')).includes('Carpeta vigilada'))
+  await evaluate('(() => { const input = document.querySelector(".tools-section input"); input.value = "UI preset"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
+  await evaluate('document.querySelector(".tools-actions button").click()')
+  await pollUi('Array.from(document.querySelectorAll(".tools-section select option")).some(option => option.textContent === "UI preset")')
+  await evaluate('(() => { const select = document.querySelectorAll(".tools-section")[1].querySelector("select"); select.value = "width"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await pollUi('document.querySelectorAll(".tools-section")[1].querySelector("input[type=number]") !== null')
+  await evaluate('(() => { const input = document.querySelectorAll(".tools-section")[1].querySelector("input[type=number]"); input.value = "2"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
+  await evaluate('document.querySelector(".tools-preview > button").click()')
+  await pollUi('document.querySelector(".tools-preview figcaption")?.textContent.includes("2 × 2")')
+  await evaluate('(() => { const select = document.querySelector(".language-select select"); select.value = "en"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await pollUi('document.querySelector(".tools-heading h2")?.textContent === "Advanced tools"')
+  assert.ok((await evaluate('document.querySelector(".tools-dialog").textContent')).includes('Watched folder'))
+  await evaluate('(() => { const select = document.querySelector(".language-select select"); select.value = "es"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await pollUi('document.querySelector(".tools-heading h2")?.textContent === "Herramientas avanzadas"')
+
+  await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  stage = 'validating expanded tools at minimum window size and keyboard navigation'
+  await evaluate('(() => { const sections = document.querySelectorAll(".tools-section"); for (const index of [2, 3]) { const input = sections[index].querySelector("input[type=checkbox]"); input.checked = true; input.dispatchEvent(new Event("change", { bubbles: true })); } const select = sections[4].querySelector("select"); select.value = "text"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  testWindow.setSize(760, 600)
+  await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  assert.equal(await evaluate('(() => { const dialog = document.querySelector(".tools-dialog"); const rect = dialog.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1 && rect.top >= 0 && rect.bottom <= innerHeight + 1 && dialog.scrollWidth <= dialog.clientWidth + 1; })()'), true, 'Expanded tools must fit the minimum window without horizontal scrolling')
+  if (process.env.FORMA_SCREENSHOT) await fs.writeFile(process.env.FORMA_SCREENSHOT.replace('.png', '-small-top.png'), (await testWindow.webContents.capturePage()).toPNG())
+  await evaluate('document.querySelector(".tools-dialog").scrollTop = document.querySelector(".tools-dialog").scrollHeight')
+  await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  if (process.env.FORMA_SCREENSHOT) await fs.writeFile(process.env.FORMA_SCREENSHOT.replace('.png', '-small-bottom.png'), (await testWindow.webContents.capturePage()).toPNG())
+  testWindow.webContents.focus()
+  await evaluate('document.querySelector(".tools-heading button").focus()')
+  const focused = new Set()
+  for (let index = 0; index < 40; index++) {
+    testWindow.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' })
+    testWindow.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Tab' })
+    const focus = await evaluate('(() => { const dialog = document.querySelector(".tools-dialog"); return { inside: dialog.contains(document.activeElement), index: Array.from(dialog.querySelectorAll("input,select,button")).indexOf(document.activeElement) }; })()')
+    assert.equal(focus.inside, true, 'Keyboard focus must stay inside the modal at step ' + index + ': ' + JSON.stringify(focus))
+    focused.add(focus.index)
+  }
+  assert.ok(focused.size > 10, 'Tab must reach the advanced form controls')
+  testWindow.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' })
+  testWindow.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' })
+  await pollUi('!document.querySelector(".tools-dialog").open')
+  testWindow.setSize(1100, 760)
+  await evaluate('document.querySelector(".tools-open").click()')
+  await pollUi('document.querySelector(".tools-dialog").open')
+  // Restore a valid known preset after testing expanded controls.
+  await evaluate('(() => { const select = document.querySelector(".tools-section select"); select.value = Array.from(select.options).find(option => option.textContent === "UI preset").value; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  if (process.env.FORMA_SCREENSHOT) await fs.writeFile(process.env.FORMA_SCREENSHOT, (await testWindow.webContents.capturePage()).toPNG())
+  await evaluate('document.querySelector(".tools-dialog").close()')
+  const watchedSource = path.join(directory, 'watched-input')
+  const watchedOutput = path.join(directory, 'watched-output')
+  await fs.mkdir(watchedSource)
+  await evaluate('window.imageDesk.startWatching(' + JSON.stringify({ source: watchedSource, outputDir: watchedOutput, settings: custom, includeExisting: false }) + ')')
+  assert.equal((await evaluate('window.imageDesk.watchStatus()')).active, true)
+  await assert.rejects(evaluate('window.imageDesk.convert(' + JSON.stringify({ files: [inputs[0]], outputDir, format: 'png', quality: 84 }) + ')'))
+  await fs.copyFile(inputs[0], path.join(watchedSource, 'arrival.png'))
+  await pollUi('document.querySelector(".tools-watch")?.textContent.includes("1 correctas")')
+  await evaluate('window.imageDesk.stopWatching()')
+  const watchedNamed = path.join(watchedOutput, path.basename(watchedSource), 'v2-007.png')
+  assert.equal((await sharp(watchedNamed).metadata()).width, 2)
+
   stage = 'cancelling queued conversions'
   const manyInputs = []
   for (let i = 0; i < 30; i++) {
@@ -198,15 +296,25 @@ try {
 
   stage = 'closing during conversion'
   const closeDir = path.join(directory, 'close-results')
-  await evaluate('new Promise((resolve) => { const remove = window.imageDesk.onProgress((event) => { if (event.status === "converting") { remove(); resolve(true) } }); void window.imageDesk.convert(' + JSON.stringify({ ...cancelOptions, outputDir: closeDir }) + ') })')
+  if (process.env.FORMA_TEST_CLOSE_WATCHER) {
+    stage = 'closing during watched conversion'
+    const closeSource = path.join(directory, 'close-watched-input')
+    await fs.mkdir(closeSource)
+    await sharp({ create: { width: 2400, height: 2400, channels: 3, background: '#4278b9' } }).png().toFile(path.join(closeSource, 'closing.png'))
+    await evaluate('new Promise((resolve) => { const remove = window.imageDesk.onWatchState((event) => { if (event.processing) { remove(); resolve(true) } }); void window.imageDesk.startWatching(' + JSON.stringify({ source: closeSource, outputDir: closeDir, settings: { format: 'avif', quality: 84 }, includeExisting: true }) + ') })')
+    assert.equal((await evaluate('window.imageDesk.watchStatus()')).active, true)
+  } else {
+    await evaluate('new Promise((resolve) => { const remove = window.imageDesk.onProgress((event) => { if (event.status === "converting") { remove(); resolve(true) } }); void window.imageDesk.convert(' + JSON.stringify({ ...cancelOptions, outputDir: closeDir }) + ') })')
+  }
   const closed = new Promise((resolve) => testWindow.once('closed', resolve))
   testWindow.close()
+  if (process.env.FORMA_TEST_CLOSE_WATCHER) assert.equal(testWindow.isDestroyed(), false, 'Closing must wait for the active watched encoder')
   await closed
   assert.ok((await fs.readdir(closeDir)).length > 0, 'Active encoders must finish before closing')
-  for (const file of await fs.readdir(closeDir)) assert.equal((await sharp(path.join(closeDir, file)).metadata()).width, 4)
-  console.log('Desktop passed: preload/IPC, languages, preferences, all six formats, corrupt/missing inputs, invalid destinations, GIF animation, cancellation and safe close.')
+  for (const file of await fs.readdir(closeDir)) assert.equal((await sharp(path.join(closeDir, file)).metadata()).width, process.env.FORMA_TEST_CLOSE_WATCHER ? 2400 : 4)
+  console.log('Desktop passed: preload/IPC, languages, preferences, all six formats, corrupt/missing inputs, invalid destinations, GIF animation, cancellation and safe close (' + (process.env.FORMA_TEST_CLOSE_WATCHER ? 'folder watcher' : 'manual conversion') + ').')
 } catch (error) {
-  console.error(error)
+  console.error('Desktop stage:', stage, error)
   process.exitCode = 1
 } finally {
   dialog.showMessageBox = originalMessageBox

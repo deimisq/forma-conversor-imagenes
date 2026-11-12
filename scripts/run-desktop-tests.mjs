@@ -11,7 +11,7 @@ const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'forma-desktop-test-')
 try {
   const result = spawnSync(electron, [fileURLToPath(new URL('./check-desktop.mjs', import.meta.url)), process.argv[2] ?? 'es'], {
     stdio: 'inherit', windowsHide: true,
-    env: { ...process.env, FORMA_TEST_DIRECTORY: directory },
+    env: { ...process.env, FORMA_TEST_DIRECTORY: directory, ...(process.argv.includes('--watch-close') ? { FORMA_TEST_CLOSE_WATCHER: '1' } : {}) },
   })
   if (result.error) throw result.error
   process.exitCode = result.status ?? 1

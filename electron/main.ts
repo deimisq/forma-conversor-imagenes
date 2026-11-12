@@ -1,13 +1,20 @@
-import { t, language, defaultLanguage, isLanguage, setLanguage } from '../shared/locale'
+import { t, language, defaultLanguage, isLanguage, setLanguage, systemLanguage } from '../shared/locale'
+import { startFolderWatcher, type WatchStatus } from './folder-watcher.ts'
+import { toolMessage } from '../shared/tool-errors.ts'
+import { collectImageEntries, supportedInputs } from './files.ts'
+import { checkStoreUpdates } from './store-updates'
 import { currentRelease } from '../shared/release'
 import { consumeReleaseNotice } from './release-notice'
 import { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences } from './preferences'
-import { reserveOutput } from './output'
+import { createOutputEncoder, createPreview, destinationDirectory, validateConversionOptions, writeNamedOutput } from './conversion.ts'
+import type { ConversionOptions } from './conversion.ts'
+import { createSettingsStore } from './settings-store.ts'
+import { plannedFilename } from '../shared/naming.ts'
+import { existsSync } from 'node:fs'
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import fs from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
-import sharp from 'sharp'
 import electronUpdater from 'electron-updater'
 
 const { autoUpdater } = electronUpdater
@@ -33,7 +40,6 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
 let win: BrowserWindow | null
-const supportedInputs = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.heic', '.heif'])
 let cancelRequested = false
 let conversionInProgress = false
 let closeAfterConversion = false
@@ -56,8 +62,20 @@ function sendUpdateState(state: Record<string, unknown>) {
 }
 
 async function checkForUpdates() {
+  if (app.getVersion().includes('-preview.')) {
+    sendUpdateState({ status: 'not-available', message: t('Esta versión de prueba no recibe actualizaciones.') })
+    return
+  }
   if (storeManaged) {
-    sendUpdateState({ status: 'not-available', message: t('Las actualizaciones se gestionan desde Microsoft Store.') })
+    if (updateCheckInProgress) return
+    updateCheckInProgress = true
+    sendUpdateState({ status: 'checking', source: 'store' })
+    try {
+      const available = await checkStoreUpdates()
+      sendUpdateState({ status: available ? 'available' : 'not-available', source: 'store', message: available ? 'Hay actualizaciones en Microsoft Store.' : 'No hay actualizaciones disponibles en Microsoft Store.' })
+    } catch {
+      sendUpdateState({ status: 'error', source: 'store', message: 'No se pudo consultar Microsoft Store.' })
+    } finally { updateCheckInProgress = false }
     return
   }
   if (!app.isPackaged || updateCheckInProgress) return
@@ -89,36 +107,16 @@ autoUpdater.on('update-downloaded', (info) => sendUpdateState({ status: 'downloa
 autoUpdater.on('update-cancelled', () => sendUpdateState({ status: 'available' }))
 autoUpdater.on('error', (error) => sendUpdateState({ status: 'error', message: error.message }))
 
-type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
-type ConversionOptions = { files: string[]; outputDir: string; format: OutputFormat; quality: number }
 
-async function collectImages(paths: string[], errors: { path: string; message: string }[]): Promise<string[]> {
-  const images: string[] = []
-  const pending = [...paths]
-  const visited = new Set<string>()
-  while (pending.length) {
-    if (inspectionCancelled) break
-    const current = pending.pop()!
-    try {
-      const info = await fs.stat(current)
-      if (info.isDirectory()) {
-        const canonical = (await fs.realpath(current)).toLowerCase()
-        if (visited.has(canonical)) continue
-        visited.add(canonical)
-        const entries = await fs.readdir(current, { withFileTypes: true })
-        for (const entry of entries) {
-          if (entry.isDirectory()) pending.push(path.join(current, entry.name))
-          else if (entry.isFile() && supportedInputs.has(path.extname(entry.name).toLowerCase())) images.push(path.join(current, entry.name))
-        }
-      } else if (info.isFile() && supportedInputs.has(path.extname(current).toLowerCase())) images.push(current)
-    } catch (error) {
-      errors.push({ path: current, message: error instanceof Error ? error.message : t('No se pudo leer el archivo.') })
-    }
-  }
-  return [...new Set(images)]
+async function collectImages(paths: string[], errors: { path: string; message: string }[], roots: Record<string, string>): Promise<string[]> {
+  const entries = await collectImageEntries(paths, { cancelled: () => inspectionCancelled, onError: (file, error) => errors.push({ path: file, message: toolMessage(error, language) }) })
+  for (const entry of entries) roots[entry.path] = entry.sourceRoot
+  return entries.map(entry => entry.path)
 }
 
+let watcherProcessing = false
 function sendProgress(payload: Record<string, unknown>) {
+  if (watcherProcessing) return
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('conversion:progress', payload)
 }
 
@@ -142,13 +140,11 @@ async function convertBatch(options: ConversionOptions) {
       sendProgress({ type: 'file', input, status: 'converting' })
       let output: string | undefined
       try {
-        const extension = options.format === 'jpeg' ? 'jpg' : options.format
-        const base = path.basename(input, path.extname(input))
-        output = await reserveOutput(outputDir, base, extension)
-        let pipeline = sharp(input, { animated: options.format === 'gif' }).rotate()
-        if (options.format === 'jpeg') pipeline = pipeline.flatten({ background: '#ffffff' })
-        const encoder = pipeline.toFormat(options.format, options.format === 'png' || options.format === 'tiff' ? {} : { quality: options.quality })
-        const result = await encoder.toFile(output)
+        const directory = destinationDirectory(outputDir, input, options.sourceRoots[input] || path.dirname(input), options.preserveFolders)
+        await fs.mkdir(directory, { recursive: true })
+        const encoder = await createOutputEncoder(input, options)
+        output = await writeNamedOutput(encoder, directory, plannedFilename(input, options, options.sequence?.[index] ?? index))
+        const result = await fs.stat(output)
         const inputSize = (await fs.stat(input)).size
         totals.inputBytes += inputSize
         totals.outputBytes += result.size
@@ -158,7 +154,7 @@ async function convertBatch(options: ConversionOptions) {
       } catch (error) {
         if (output) await fs.unlink(output).catch(() => {})
         totals.failed++
-        sendProgress({ type: 'file', input, status: 'error', message: error instanceof Error ? error.message : t('No se pudo convertir.') })
+        sendProgress({ type: 'file', input, status: 'error', message: toolMessage(error, language) })
       }
     }
   }
@@ -170,12 +166,74 @@ async function convertBatch(options: ConversionOptions) {
 }
 
 function handle(channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown) {
-  ipcMain.handle(channel, (event, ...args) => {
+  ipcMain.handle(channel, async (event, ...args) => {
     const expected = VITE_DEV_SERVER_URL || pathToFileURL(path.join(RENDERER_DIST, 'index.html')).href
     if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== expected) throw new Error('Untrusted IPC sender')
-    return listener(event, ...args)
+    try { return await listener(event, ...args) }
+    catch (error) { throw new Error(toolMessage(error, language)) }
   })
 }
+let settingsStore: ReturnType<typeof createSettingsStore> | undefined
+function advancedStore() {
+  return settingsStore ??= createSettingsStore(path.join(app.getPath('userData'), 'tools-settings.json'))
+}
+let folderWatcher: Awaited<ReturnType<typeof startFolderWatcher>> | undefined
+let startingWatcher = false
+let watcherState: WatchStatus = { active: false, processing: false, completed: 0, failed: 0, source: '', output: '' }
+function reportWatcher(state: WatchStatus) {
+  watcherState = state
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send('tools:watch-state', state)
+}
+handle('tools:watch-status', () => watcherState)
+handle('tools:watch-stop', () => { folderWatcher?.stop(); cancelRequested = true; return watcherState })
+handle('tools:watch-start', async (_event, value: unknown) => {
+  if (startingWatcher || watcherState.active || conversionInProgress || previewInProgress) throw new Error('Ya hay una conversión en curso.')
+  if (!value || typeof value !== 'object') throw new Error('Opciones de vigilancia inválidas.')
+  const request = value as { source: string; outputDir: string; settings: unknown; includeExisting?: boolean }
+  if (typeof request.source !== 'string' || typeof request.outputDir !== 'string' || (request.includeExisting !== undefined && typeof request.includeExisting !== 'boolean')) throw new Error('Opciones de vigilancia inválidas.')
+  const validated = validateConversionOptions({ ...(request.settings as object), files: [request.source], outputDir: request.outputDir })
+  startingWatcher = true
+  let watchSequence = 0
+  try {
+    folderWatcher = await startFolderWatcher({ source: request.source, output: request.outputDir, includeExisting: request.includeExisting, extensions: supportedInputs,
+      available: () => !conversionInProgress && !previewInProgress && !closeAfterConversion,
+      report: reportWatcher,
+      process: async (file, source, output) => {
+        conversionInProgress = true; watcherProcessing = true
+        try {
+          const result = await convertBatch({ ...validated, files: [file], sequence: [watchSequence++], sourceRoots: { [file]: source }, outputDir: output })
+          if (result.failed) throw new Error(t('No se pudo convertir.'))
+        } finally { conversionInProgress = false; watcherProcessing = false; if (closeAfterConversion) win?.close() }
+      },
+    })
+    return watcherState
+  } finally { startingWatcher = false }
+})
+handle('tools:load', async () => {
+  const exists = existsSync(path.join(app.getPath('userData'), 'tools-settings.json'))
+  const store = advancedStore()
+  const data = await store.load()
+  if (!exists) {
+    const legacy = await readConversionPreferences(app.getPath('userData'))
+    if (legacy) return store.savePreferences({ ...data.preferences, format: legacy.format, quality: legacy.quality, outputDirectory: legacy.outputDir })
+  }
+  return data
+})
+handle('tools:preferences', (_event, value: unknown) => advancedStore().savePreferences(value))
+handle('tools:preset-save', (_event, value: unknown) => advancedStore().savePreset(value))
+handle('tools:preset-delete', (_event, id: unknown) => advancedStore().deletePreset(id))
+handle('tools:watermark', async () => {
+  const result = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: t('Imágenes'), extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
+  return result.canceled ? null : result.filePaths[0]
+})
+let previewInProgress = false
+handle('tools:preview', async (_event, value: unknown) => {
+  if (conversionInProgress || previewInProgress || watcherState.active || startingWatcher) throw new Error('Ya hay una conversión en curso.')
+  const options = validateConversionOptions(value)
+  previewInProgress = true
+  try { return await createPreview(options.files[0], options, 0) }
+  finally { previewInProgress = false; if (closeAfterConversion) win?.close() }
+})
 handle('preferences:read', () => readConversionPreferences(app.getPath('userData')))
 handle('preferences:write', (_event, value: unknown) => writeConversionPreferences(app.getPath('userData'), value))
 
@@ -196,13 +254,8 @@ handle('folder:select-output', async () => {
 handle('folder:default-output', () => path.join(app.getPath('pictures'), t('Imagenes convertidas')))
 
 handle('conversion:start', async (_event, options: ConversionOptions) => {
-  if (conversionInProgress) throw new Error(t('Ya hay una conversión en curso.'))
-  if (!options || !Array.isArray(options.files) || !options.files.every((file) => typeof file === 'string' && path.isAbsolute(file)) ||
-      typeof options.outputDir !== 'string' || (options.outputDir && !path.isAbsolute(options.outputDir)) ||
-      !['jpeg', 'png', 'webp', 'avif', 'tiff', 'gif'].includes(options.format) ||
-      !Number.isInteger(options.quality) || options.quality < 1 || options.quality > 100) {
-    throw new Error(t('Opciones de conversión inválidas.'))
-  }
+  if (conversionInProgress || previewInProgress || watcherState.active || startingWatcher) throw new Error('Ya hay una conversión en curso.')
+  options = validateConversionOptions(options)
   conversionInProgress = true
   try {
     return await convertBatch(options)
@@ -218,7 +271,7 @@ handle('folder:open', async (_event, folder: unknown) => {
   if (error) throw new Error(error)
 })
 handle('app:version', () => app.getVersion())
-handle('app:language', () => readLanguage(app.getPath('userData')))
+handle('app:language', () => language)
 let savingLanguage = false
 handle('app:set-language', async (_event, value: unknown) => {
   if (!isLanguage(value) || savingLanguage) throw new Error(t('No se pudo guardar el idioma.'))
@@ -233,6 +286,7 @@ handle('app:set-language', async (_event, value: unknown) => {
   }
 })
 handle('updates:check', () => checkForUpdates())
+handle('updates:open-store', () => storeManaged ? shell.openExternal('ms-windows-store://downloadsandupdates') : undefined)
 handle('updates:download', async () => {
   if (!app.isPackaged || storeManaged) return
   sendUpdateState({ status: 'downloading', percent: 0 })
@@ -251,15 +305,16 @@ handle('files:inspect', async (_event, filePaths: string[]) => {
   inspectionCancelled = false
   const errors: { path: string; message: string }[] = []
   try {
-    const files = await collectImages(filePaths, errors)
-    const inspected: { path: string; name: string; size: number }[] = []
+    const roots: Record<string, string> = Object.create(null)
+    const files = await collectImages(filePaths, errors, roots)
+    const inspected: { path: string; name: string; size: number; sourceRoot: string }[] = []
     for (let start = 0; start < files.length; start += 200) {
       if (inspectionCancelled) break
       const batch = files.slice(start, start + 200)
       const metadata = await Promise.all(batch.map(async (file) => {
         try {
           const stats = await fs.stat(file)
-          return { path: file, name: path.basename(file), size: stats.size }
+          return { path: file, name: path.basename(file), size: stats.size, sourceRoot: roots[file] }
         } catch (error) {
           errors.push({ path: file, message: error instanceof Error ? error.message : t('No se pudo leer el archivo.') })
           return null
@@ -296,7 +351,8 @@ function createWindow() {
   win.webContents.on('will-attach-webview', (event) => event.preventDefault())
   win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   win.on('close', (event) => {
-    if (!conversionInProgress) return
+    folderWatcher?.stop()
+    if (!conversionInProgress && !previewInProgress) return
     event.preventDefault()
     // Stop queued work, finish active encoders, then close without partial files.
     closeAfterConversion = true
@@ -347,7 +403,7 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(async () => {
-  setLanguage(await readLanguage(app.getPath('userData')))
+  setLanguage(await readLanguage(app.getPath('userData'), systemLanguage(app.getPreferredSystemLanguages())))
   try {
     releaseNoticePending = await consumeReleaseNotice(app.getPath('userData'), app.getVersion())
   } catch (error) {

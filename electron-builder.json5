@@ -18,6 +18,10 @@
     "dist",
     "dist-electron"
   ],
+  "extraResources": [
+    { "from": "LICENSE", "to": "licenses/Forma-LICENSE.txt" },
+    { "from": "generated/notices", "to": "licenses/third-party" }
+  ],
   "win": {
     "executableName": "Forma",
     "icon": "assets/forma-logo.ico",

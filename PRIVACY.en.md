@@ -22,13 +22,13 @@ or `Pictures/Converted images` depending on the language at startup. Windows may
 display a localized name for Pictures. Forma keeps no separate copy of your images.
 Originals and results remain in the locations you control until you move or delete them.
 
-## Language preference
+## Preferences, presets and tools
 
-Forma saves your language choice (`es` or `en`) in `preferences.json` in the app's
-local user data directory. This contains no images, file paths or usage statistics
-and is not sent to a server. Change it using the ES / EN selector or remove the
-file while Forma is closed to restore the installer's initial language. Uninstallation
-may retain local application data for future reinstalls.
+Forma stores language and basic conversion options in `preferences.json` in local user data. Advanced options and named presets use `tools-settings.json`. These may contain format, quality, output folder, resize rules, naming rules, watermark text and the local path to a watermark image. They contain no image contents or usage statistics and are not sent to servers.
+
+Previews are generated in memory without saving output. Folder watching reads selected folders while Forma is open; its paths and state remain in the current session and watching does not resume automatically after restarting. Stop it from Advanced tools. Results are saved to the selected output folder and originals are preserved.
+
+Change settings in the app or remove their files while Forma is closed to reset them. Without a saved language, Forma follows Windows languages and falls back to English. Uninstallation may retain local settings for reinstalls.
 
 ## Network connections and updates
 
@@ -44,7 +44,7 @@ Forma does not receive your IP address or use these requests to identify you.
 Updates are downloaded only when requested and cached locally. Installation begins
 when you choose to install and restart.
 
-Direct Store downloads may be hosted on Cloudflare R2. Cloudflare receives ordinary
+Optional copies of direct-download installers may be hosted on Cloudflare R2. Microsoft Store distributes the APPX. Cloudflare receives ordinary
 connection information under its [privacy policy](https://www.cloudflare.com/privacypolicy/).
 This does not change local image processing. Forma includes no advertising, accounts,
 analytics, cross-app tracking or proprietary telemetry and sends no conversion statistics.

@@ -18,14 +18,13 @@ Forma es un proyecto independiente mantenido por la cuenta pública [deimisq en 
 - Los resultados se guardan en la carpeta que elijas o, de forma predeterminada, en `Imágenes/Imagenes convertidas` o `Imágenes/Converted images`, según el idioma al iniciar.
 - Forma no conserva una copia propia de tus imágenes. Los originales y resultados permanecen en las ubicaciones de Windows que hayas elegido hasta que tú los muevas o elimines.
 
-## Preferencia de idioma
+## Preferencias, ajustes y herramientas
 
-Forma guarda únicamente la elección de idioma (`es` o `en`) en `preferences.json`,
-dentro del directorio local de datos de la aplicación. La preferencia no contiene
-imágenes, rutas de archivos ni estadísticas de uso y no se envía a ningún servidor.
-Puedes cambiarla mediante el selector ES / EN o eliminar ese archivo con Forma cerrada
-para recuperar el idioma inicial del instalador. El desinstalador puede conservar
-los datos locales para permitir futuras reinstalaciones.
+Forma conserva idioma y opciones básicas de conversión en `preferences.json`, dentro de los datos locales del usuario. Las herramientas avanzadas y los ajustes con nombre se guardan en `tools-settings.json`. Pueden incluir formato, calidad, destino, tamaño, reglas de nombres, texto de marca de agua y ruta local de la imagen de marca. No incluyen el contenido de imágenes ni estadísticas de uso y no se envían a servidores.
+
+Las vistas previas se generan en memoria y no guardan resultados. La vigilancia lee las carpetas elegidas mientras la aplicación está abierta; su ruta y estado se mantienen en la sesión y no se reanudan automáticamente al reiniciar. Puedes detenerla desde Herramientas avanzadas. Los resultados se guardan en el destino indicado y los originales se conservan.
+
+Puedes cambiar los ajustes en la app o eliminar sus archivos con Forma cerrada para restablecerlos. Sin preferencia de idioma se usan los idiomas de Windows, con inglés como alternativa. El desinstalador puede conservar los datos locales para futuras reinstalaciones.
 
 ## Conexiones de red y actualizaciones
 
@@ -41,7 +40,7 @@ La aplicación no descarga una actualización hasta que eliges hacerlo. Si la de
 
 La app no incluye analítica, publicidad, seguimiento entre aplicaciones, cuentas de usuario ni telemetría propia. No envía datos de conversión ni estadísticas de uso.
 
-Los instaladores ofrecidos para descarga directa desde Microsoft Store pueden alojarse en Cloudflare R2. Al solicitar una descarga, Cloudflare recibe los datos técnicos habituales de la conexión al servidor de archivos y los procesa conforme a su [política de privacidad](https://www.cloudflare.com/privacypolicy/). Esto no afecta al procesamiento local de imágenes dentro de Forma.
+Las copias opcionales de los instaladores de descarga directa pueden alojarse en Cloudflare R2. Microsoft Store distribuye el APPX. Al solicitar una descarga, Cloudflare recibe los datos técnicos habituales de la conexión al servidor de archivos y los procesa conforme a su [política de privacidad](https://www.cloudflare.com/privacypolicy/). Esto no afecta al procesamiento local de imágenes dentro de Forma.
 
 ## Microsoft Store
 

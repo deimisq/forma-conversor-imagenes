@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## [2.0.0] - En preparación, sin publicar
+
+- Incluye todas las herramientas en una única aplicación gratuita.
+- Redimensiona por ancho, alto, porcentaje y límites conservando proporciones.
+- Crea, aplica, actualiza y elimina ajustes personalizados persistentes.
+- Conserva subcarpetas y renombra con prefijos, sufijos y numeración sin sobrescribir resultados.
+- Añade marcas de texto o imagen y previsualiza sin modificar originales.
+- Ajusta JPEG, WebP y AVIF a un peso objetivo; reduce dimensiones solo con permiso e informa si no alcanza el límite.
+- Vigila carpetas durante la sesión, espera archivos estables y termina la conversión activa al cerrar.
+- Detecta el idioma del equipo al primer inicio y conserva la selección posterior del usuario.
+- Consulta actualizaciones de APPX mediante Store y conserva GitHub para EXE.
+- Migra preferencias y amplía pruebas de herramientas, errores, teclado y cierre seguro.
+
+Pendientes de publicación y validaciones: [criterios de entrega](V2_RELEASE.md).
+
 ## [1.3.0] - 2026-11-06
 
 - Muestra las novedades de la versión una sola vez al abrir la app después de actualizar; funciona sin conexión y respeta el idioma guardado.

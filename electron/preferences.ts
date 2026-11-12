@@ -2,12 +2,12 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { defaultLanguage, isLanguage, type Language } from '../shared/locale'
 
-export async function readLanguage(directory: string): Promise<Language> {
+export async function readLanguage(directory: string, fallback: Language = defaultLanguage): Promise<Language> {
   try {
     const preferences = JSON.parse(await fs.readFile(path.join(directory, 'preferences.json'), 'utf8'))
-    return isLanguage(preferences?.language) ? preferences.language : defaultLanguage
+    return isLanguage(preferences?.language) ? preferences.language : fallback
   } catch {
-    return defaultLanguage
+    return fallback
   }
 }
 
@@ -16,7 +16,7 @@ export type ConversionPreferences = { format: 'jpeg' | 'png' | 'webp' | 'avif' |
 export function validConversionPreferences(value: unknown): value is ConversionPreferences {
   if (!value || typeof value !== 'object') return false
   const item = value as ConversionPreferences
-  return ['jpeg', 'png', 'webp', 'avif', 'tiff', 'gif'].includes(item.format) && Number.isInteger(item.quality) && item.quality >= 40 && item.quality <= 100 && typeof item.outputDir === 'string' && (!item.outputDir || path.isAbsolute(item.outputDir))
+  return ['jpeg', 'png', 'webp', 'avif', 'tiff', 'gif'].includes(item.format) && Number.isInteger(item.quality) && item.quality >= 1 && item.quality <= 100 && typeof item.outputDir === 'string' && (!item.outputDir || path.isAbsolute(item.outputDir))
 }
 
 export async function readConversionPreferences(directory: string): Promise<ConversionPreferences | null> {

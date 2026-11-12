@@ -1,6 +1,20 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('imageDesk', {
+  watchStatus: () => ipcRenderer.invoke('tools:watch-status'),
+  startWatching: (value: unknown) => ipcRenderer.invoke('tools:watch-start', value),
+  stopWatching: () => ipcRenderer.invoke('tools:watch-stop'),
+  onWatchState: (callback: (value: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: unknown) => callback(value)
+    ipcRenderer.on('tools:watch-state', listener)
+    return () => ipcRenderer.removeListener('tools:watch-state', listener)
+  },
+  loadTools: () => ipcRenderer.invoke('tools:load'),
+  saveTools: (value: unknown) => ipcRenderer.invoke('tools:preferences', value),
+  savePreset: (value: unknown) => ipcRenderer.invoke('tools:preset-save', value),
+  deletePreset: (id: string) => ipcRenderer.invoke('tools:preset-delete', id),
+  selectWatermark: () => ipcRenderer.invoke('tools:watermark'),
+  preview: (value: unknown) => ipcRenderer.invoke('tools:preview', value),
   getPreferences: () => ipcRenderer.invoke('preferences:read'),
   setPreferences: (value: unknown) => ipcRenderer.invoke('preferences:write', value),
   cancelInspection: () => ipcRenderer.invoke('files:cancel-inspection'),
@@ -8,6 +22,7 @@ contextBridge.exposeInMainWorld('imageDesk', {
   getLanguage: () => ipcRenderer.invoke('app:language'),
   setLanguage: (language: 'es' | 'en') => ipcRenderer.invoke('app:set-language', language),
   checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  openStoreUpdates: () => ipcRenderer.invoke('updates:open-store'),
   downloadUpdate: () => ipcRenderer.invoke('updates:download'),
   installUpdate: () => ipcRenderer.invoke('updates:install'),
   selectFiles: () => ipcRenderer.invoke('files:select'),

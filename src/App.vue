@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { t as translate, defaultLanguage, isLanguage, type Language } from '../shared/locale'
+import { t as translate, systemLanguage, isLanguage, type Language } from '../shared/locale'
 import LanguageFlag from './components/LanguageFlag.vue'
+import AdvancedTools from './components/AdvancedTools.vue'
+import { defaultSettings, type ConversionSettings } from '../shared/advanced-settings.ts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import formaLogo from './assets/forma-logo.svg'
 import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, Download, FileImage, FolderOpen, LoaderCircle, Plus, RefreshCw, RotateCw, Settings2, ShieldCheck, X } from '@lucide/vue'
 
-type ImageFile = { path: string; name: string; size: number; status: 'queued' | 'converting' | 'done' | 'error' | 'cancelled'; output?: string; message?: string }
+type ImageFile = { sourceRoot?: string; path: string; name: string; size: number; status: 'queued' | 'converting' | 'done' | 'error' | 'cancelled'; output?: string; message?: string }
 type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
-type UpdateState = { status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'; version?: string; percent?: number; message?: string }
+type UpdateState = { status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'; source?: 'store'; version?: string; percent?: number; message?: string }
 
 const files = ref<ImageFile[]>([])
 const desktopApiAvailable = typeof window.imageDesk !== 'undefined'
-const selectedLanguage = ref<Language>(defaultLanguage)
+const selectedLanguage = ref<Language>(systemLanguage(navigator.languages))
 const savingLanguage = ref(false)
 function t(text: string) { return translate(text, selectedLanguage.value) }
 watch(selectedLanguage, (value) => {
@@ -42,8 +44,11 @@ const appVersion = ref('')
 const updateState = ref<UpdateState>({ status: 'idle' })
 const format = ref<OutputFormat>('webp')
 const quality = ref(84)
+const tools = ref(defaultSettings())
+function applyTools(value: ConversionSettings) { tools.value = value; format.value = value.format; quality.value = value.quality }
 const outputDirectory = ref('')
 const busy = ref(false)
+const watching = ref(false)
 const finished = ref(false)
 const dragActive = ref(false)
 const progressCount = ref(0)
@@ -115,12 +120,13 @@ const formats = computed<{ value: OutputFormat; label: string; detail: string }[
 const totalBytes = computed(() => files.value.reduce((total, file) => total + file.size, 0))
 const completedCount = ref(0)
 const progressPercent = computed(() => files.value.length ? Math.round((progressCount.value / (batchTotal.value || 1)) * 100) : 0)
-const canConvert = computed(() => desktopApiAvailable && preferencesReady.value && files.value.length > 0 && !busy.value && !loadingFiles.value)
+const canConvert = computed(() => !watching.value && desktopApiAvailable && preferencesReady.value && files.value.length > 0 && !busy.value && !loadingFiles.value)
 const currentFormat = computed(() => formats.value.find((item) => item.value === format.value) ?? formats.value[0])
 const firstVisibleIndex = computed(() => Math.min(Math.max(0, files.value.length - 1), Math.max(0, Math.floor(listScrollTop.value / rowHeight) - 4)))
 const visibleFiles = computed(() => files.value.slice(firstVisibleIndex.value, firstVisibleIndex.value + Math.ceil(listHeight.value / rowHeight) + 8))
 const updateActionLabel = computed(() => {
   if (updateState.value.status === 'checking') return t('Buscando actualizaciones')
+  if (updateState.value.source === 'store' && ['available', 'error'].includes(updateState.value.status)) return t('Abrir Microsoft Store')
   if (updateState.value.status === 'available') return `${t('Descargar')} v${updateState.value.version}`
   if (updateState.value.status === 'downloading') return `${t('Descargando')} ${updateState.value.percent ?? 0}%`
   if (updateState.value.status === 'downloaded') return t('Instalar y reiniciar')
@@ -206,6 +212,7 @@ async function startConversion(onlyFailed = false) {
   if (!canConvert.value) return
   const selected = onlyFailed ? failedFiles.value : files.value
   if (!selected.length) return
+  const queuePositions = new Map(files.value.map((file, index) => [file.path, index]))
   const selectedPaths = new Set(selected.map((file) => file.path))
   batchTotal.value = selected.length
   summary.value = null
@@ -222,6 +229,9 @@ async function startConversion(onlyFailed = false) {
   files.value = files.value.map((file) => selectedPaths.has(file.path) ? { ...file, status: 'queued', output: undefined, message: undefined } : file)
   try {
     const result = await window.imageDesk.convert({
+      ...JSON.parse(JSON.stringify(tools.value)),
+      sequence: selected.map(file => queuePositions.get(file.path)!),
+      sourceRoots: Object.fromEntries(selected.filter(file => file.sourceRoot).map(file => [file.path, file.sourceRoot!])),
       files: selected.map((file) => file.path),
       outputDir: outputDirectory.value,
       format: format.value,
@@ -255,11 +265,12 @@ async function openOutputFolder() {
 async function runUpdateAction() {
   if (!desktopApiAvailable) return
   try {
-    if (updateState.value.status === 'available') await window.imageDesk.downloadUpdate()
+    if (updateState.value.source === 'store' && ['available', 'error'].includes(updateState.value.status)) await window.imageDesk.openStoreUpdates()
+    else if (updateState.value.status === 'available') await window.imageDesk.downloadUpdate()
     else if (updateState.value.status === 'downloaded') await window.imageDesk.installUpdate()
     else await window.imageDesk.checkForUpdates()
   } catch (error) {
-    updateState.value = { status: 'error', message: error instanceof Error ? error.message : t('No se pudo consultar GitHub Releases.') }
+    updateState.value = { status: 'error', source: updateState.value.source, message: error instanceof Error ? error.message : t('No se pudo completar la operación.') }
   }
 }
 
@@ -338,7 +349,7 @@ onBeforeUnmount(() => {
           <ChevronDown :size="12" aria-hidden="true" />
         </label>
         <span class="local-badge"><ShieldCheck :size="14" /> {{ t('Procesamiento local') }}</span>
-        <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading' || (busy && updateState.status === 'downloaded')" :aria-label="updateActionLabel" :title="updateState.message || updateActionLabel" @click="runUpdateAction">
+        <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading' || (busy && updateState.status === 'downloaded')" :aria-label="updateActionLabel" :title="updateState.message ? t(updateState.message) : updateActionLabel" @click="runUpdateAction">
           <LoaderCircle v-if="updateState.status === 'checking' || updateState.status === 'downloading'" :size="15" class="spin" />
           <Download v-else-if="updateState.status === 'available'" :size="15" />
           <RotateCw v-else-if="updateState.status === 'downloaded'" :size="15" />
@@ -349,6 +360,7 @@ onBeforeUnmount(() => {
       </div>
     </header>
     <div v-if="runtimeWarning" class="runtime-warning" role="status"><CircleAlert :size="16" /> {{ t(runtimeWarning) }}</div>
+    <div v-if="updateState.source === 'store' && updateState.message && updateState.status !== 'checking'" class="runtime-warning" role="status">{{ t(updateState.message) }}</div>
 
     <section class="workspace">
       <div class="intro-row">
@@ -402,7 +414,7 @@ onBeforeUnmount(() => {
           <div class="setting-block">
             <label class="setting-label">{{ t('Formato de salida') }}</label>
             <div class="format-select-wrap" @keydown="formatKeydown" @focusout="(event) => { if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) formatMenuOpen = false }">
-              <button class="format-select" :disabled="busy" :aria-expanded="formatMenuOpen" aria-haspopup="menu" aria-controls="format-menu" @click="formatMenuOpen = !formatMenuOpen">
+              <button class="format-select" :disabled="busy || watching" :aria-expanded="formatMenuOpen" aria-haspopup="menu" aria-controls="format-menu" @click="formatMenuOpen = !formatMenuOpen">
                 <span class="format-symbol">{{ currentFormat.value === 'jpeg' ? 'JPG' : currentFormat.value.toUpperCase() }}</span>
                 <span class="format-name"><strong>{{ currentFormat.label }}</strong><small>{{ currentFormat.detail }}</small></span>
                 <ChevronDown :size="17" class="chevron" />
@@ -417,15 +429,16 @@ onBeforeUnmount(() => {
 
           <div class="setting-block quality-block" :class="{ disabled: format === 'png' || format === 'tiff' }">
             <div class="quality-heading"><label class="setting-label" for="quality">{{ t('Calidad') }}</label><span>{{ quality }}<small>/100</small></span></div>
-            <input id="quality" v-model.number="quality" type="range" min="40" max="100" :disabled="busy || format === 'png' || format === 'tiff'" />
+            <input id="quality" v-model.number="quality" type="range" min="1" max="100" :disabled="busy || watching || format === 'png' || format === 'tiff'" />
             <div class="range-labels"><span>{{ t('Menor tamaño') }}</span><span>{{ t('Mayor calidad') }}</span></div>
           </div>
 
           <div class="setting-block output-block">
             <label class="setting-label">{{ t('Guardar en') }}</label>
-            <button class="output-select" :disabled="!desktopApiAvailable || busy" @click="chooseOutput"><FolderOpen :size="16" /><span :title="outputDirectory">{{ shortPath(outputDirectory) }}</span><ArrowRight :size="15" /></button>
+            <button class="output-select" :disabled="!desktopApiAvailable || busy || watching" @click="chooseOutput"><FolderOpen :size="16" /><span :title="outputDirectory">{{ shortPath(outputDirectory) }}</span><ArrowRight :size="15" /></button>
           </div>
 
+          <AdvancedTools v-model="tools" :format="format" :quality="quality" :output-directory="outputDirectory" :language="selectedLanguage" :busy="busy" :first-file="files[0]?.path" @apply="applyTools" @watching="watching = $event" />
           <div class="settings-spacer"></div>
           <p v-if="batchError" class="runtime-warning" role="alert">{{ batchError }}</p>
           <div v-if="busy || finished" class="progress-area">

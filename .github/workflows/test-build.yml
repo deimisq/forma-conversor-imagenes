@@ -1,0 +1,60 @@
+name: Compilar Forma 2.0 para pruebas
+
+on:
+  push:
+    branches: ['test/forma-2.0']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forma-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64 (${{ matrix.language }})
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: es
+            build: build:app
+            config: electron-builder.json5
+          - language: en
+            build: build:app:en
+            config: electron-builder.en.cjs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Validar tipos y regresiones
+        run: npm run typecheck && npm test
+      - name: Compilar aplicación
+        run: npm run ${{ matrix.build }}
+      - name: Probar escritorio y cierre manual
+        run: node scripts/run-desktop-tests.mjs ${{ matrix.language }}
+      - name: Probar cierre durante vigilancia
+        run: node scripts/run-desktop-tests.mjs ${{ matrix.language }} --watch-close
+      - name: Generar EXE y APPX sin publicar
+        run: node node_modules/electron-builder/cli.js --config ${{ matrix.config }} --config.directories.output=release/ci-${{ matrix.language }} --win --publish never
+      - name: Añadir instrucciones de prueba
+        shell: pwsh
+        run: Copy-Item docs/INSTALL-TEST.md release/ci-${{ matrix.language }}/INSTALL-TEST.md
+      - name: Descargar instaladores
+        uses: actions/upload-artifact@v4
+        with:
+          name: forma-2.0.0-windows-x64-${{ matrix.language }}
+          path: |
+            release/ci-${{ matrix.language }}/*.exe
+            release/ci-${{ matrix.language }}/*.appx
+            release/ci-${{ matrix.language }}/INSTALL-TEST.md
+          if-no-files-found: error
+          retention-days: 14

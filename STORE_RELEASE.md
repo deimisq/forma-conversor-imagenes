@@ -1,26 +1,24 @@
-# Entrega 1.3.0 a Microsoft Store
+# Preparación de Forma 2.0.0 para Microsoft Store
 
-## Pendiente para la próxima versión
+## Cambios implementados después de 1.3.0 (sin publicar)
 
-- [ ] Hacer que el botón «Buscar actualizaciones» consulte el canal correspondiente
-  al origen de instalación: GitHub Releases para el instalador descargado desde GitHub;
-  Microsoft Store para las instalaciones procedentes de Microsoft Store.
-- [ ] En GitHub, conservar los canales de instalador español e inglés, comparar la versión
-  instalada con la publicada y mantener la descarga e instalación mediante electron-updater.
-- [ ] En Microsoft Store, consultar las actualizaciones del producto mediante el mecanismo
-  de Store compatible con el paquete; mostrar el resultado y permitir continuar desde Store.
-  No descargar ni instalar un EXE de GitHub sobre una instalación administrada por Store.
-- [ ] Distinguir el origen real de instalación del idioma y del lugar donde se publica
-  el binario. La detección actual usa `process.windowsStore` para APPX; no asumir que
-  identifica también un EXE instalado desde una ficha de Microsoft Store. Verificar y
-  definir esa detección antes de implementar soporte para fichas EXE.
-- [ ] Probar instalación desde GitHub y desde Store, con y sin actualización disponible,
-  sin conexión, y cambio de idioma, comprobando que nunca se crucen los canales.
+- El primer inicio usa los idiomas preferidos de Windows: español o inglés.
+  Si ninguno está soportado, usa inglés. La elección guardada del usuario tiene
+  prioridad en los siguientes inicios, aunque cambie el idioma del equipo.
+- NSIS descargado desde GitHub consulta GitHub Releases mediante electron-updater.
+  Mantiene los canales latest/en del instalador, independientes del idioma elegido.
+  R2 aloja copias de descarga; no actúa como feed de actualización.
+- APPX consulta StoreContext.GetAppAndOptionalStorePackageUpdatesAsync mediante
+  Windows PowerShell/WinRT. Informa si hay actualizaciones y permite abrir la
+  sección de actualizaciones de Microsoft Store. Los errores no se presentan
+  como ausencia de actualizaciones. Nunca descarga un EXE de GitHub.
 
-Estado en 1.3.0: GitHub se consulta desde la app en instalaciones NSIS. En APPX,
-el botón solo informa que las actualizaciones se gestionan desde Microsoft Store;
-todavía no realiza una consulta a Store. Estos requisitos quedan pendientes y no
-forman parte del tag `v1.3.0`.
+La distribución utiliza únicamente EXE/NSIS para instalación directa y APPX para Microsoft Store. No se publica EXE en Store ni se necesitan marcadores o argumentos de origen.
+
+Validado localmente: tipos, regresiones, compilaciones española e inglesa y pruebas de Electron con Windows simulado en español/inglés, incluida la compilación española con Windows en inglés. Estas pruebas no sustituyen una instalación real desde Store.
+
+Validación pendiente en equipos reales: APPX instalado desde Store con/sin una actualización disponible y sin conexión; EXE de GitHub con ambos canales y cambio de idioma.
+Los cambios anteriores no forman parte del tag v1.3.0.
 
 Esta entrega incluye cierre seguro, búsqueda cancelable, reintento de fallidos,
 preferencias de conversión, resumen de ahorro y un aviso de novedades después de actualizar.
@@ -30,10 +28,10 @@ La app sigue incluyendo español e inglés y procesa las imágenes localmente.
 
 | Variante inicial | NSIS x64 | APPX x64 |
 | --- | --- | --- |
-| Español | `release/1.3.0/forma-setup-1.3.0.exe` | `release/1.3.0/forma-setup-1.3.0.appx` |
-| English | `release/1.3.0/en/forma-setup-en-1.3.0.exe` | `release/1.3.0/en/forma-setup-en-1.3.0.appx` |
+| Español | `release/2.0.0/forma-setup-2.0.0.exe` | `release/2.0.0/forma-setup-2.0.0.appx` |
+| English | `release/2.0.0/en/forma-setup-en-2.0.0.exe` | `release/2.0.0/en/forma-setup-en-2.0.0.appx` |
 
-Versión de aplicación: **1.3.0**. Versión de manifiesto APPX: **1.3.0.0**.
+Versión de aplicación: **2.0.0**. Versión de manifiesto APPX: **2.0.0.0**.
 Ambas variantes declaran `es-ES` y `en-US`, con el idioma inicial primero. Conservan:
 
 - Identity: `DeimisQuintanilla.FormaConversordeImgenes`.
@@ -53,7 +51,7 @@ productos diferentes. Una aplicación inglesa independiente requiere otra identi
    `npm run build:app:en` → `npm run test:desktop:en`.
 
 3. Ejecutar `npm run build:all` para generar ambos instaladores y ambos APPX.
-4. Revisar los manifiestos y confirmar que 1.3.0/1.3.0.0 sea superior a la versión publicada.
+4. Revisar los manifiestos y confirmar que 2.0.0/2.0.0.0 sea superior a la versión publicada.
 5. Probar instalación limpia y actualización sobre la versión anterior con el mismo
    tipo de paquete. Confirmar idioma, preferencias, archivos originales y resultados.
 6. Verificar los seis formatos de salida, GIF animado, archivos corruptos, cancelación,
@@ -68,57 +66,38 @@ la actualización desde Store y la certificación deben verificarse por separado
 
 1. Revisar [CHANGELOG.md](CHANGELOG.md), [CHANGELOG.en.md](CHANGELOG.en.md) y los datos
    de [shared/release.ts](shared/release.ts), manteniendo versión, fecha y novedades coherentes.
-2. Subir el commit y el tag `v1.3.0`. El workflow publica las dos variantes en GitHub
+2. Subir el commit y el tag `v2.0.0` únicamente después de completar la validación y obtener autorización de publicación. El workflow publica las dos variantes en GitHub
    Releases y, si está configurado R2, copia los cuatro paquetes. Confirmar su resultado.
 3. Abrir el producto existente en Partner Center y crear/editar la actualización.
-   Conservar el tipo de paquete que ya utiliza la ficha: EXE/NSIS o APPX.
-4. En Packages, cargar el APPX elegido o actualizar la URL versionada del EXE,
-   según el tipo de ficha. Guardar el borrador y los cambios del paquete.
+   La distribución admitida en Store es APPX. Si la ficha actual utiliza EXE, revisar en Partner Center cómo habilitar la distribución APPX antes de enviar.
+4. En Packages, cargar el APPX elegido. Guardar el borrador y los cambios del paquete.
 5. Actualizar las localizaciones española e inglesa con los textos siguientes,
    verificar privacidad y capturas, y enviar a certificación desde Partner Center.
 
 El workflow no envía la aplicación a Partner Center ni completa la certificación.
 
-### Si la ficha utiliza EXE/NSIS
+### Canales de distribución
 
-Usar una URL HTTPS directa e inmutable de la versión, por ejemplo:
-
-- Español: `R2_PUBLIC_BASE_URL/forma-setup-1.3.0.exe`.
-- English: `R2_PUBLIC_BASE_URL/forma-setup-en-1.3.0.exe`.
-
-Partner Center requiere una URL versionada nueva para cada binario actualizado;
-no registrar los alias `latest`, que cambian de contenido. Los alias se conservan
-para descargas generales. Comprobar que la URL versionada responde con HTTP 200
-sin redirecciones y conservar el archivo sin reemplazarlo tras enviarlo.
-
-El instalador debe admitir instalación silenciosa (`/S` en NSIS). Para esta vía,
-Microsoft exige firma digital del instalador y sus archivos PE. La configuración
-actual genera NSIS sin firma: antes de enviar por EXE, configurar firma válida,
-volver a compilar y verificar el paquete firmado. No presentar este binario de
-desarrollo como listo para certificación por EXE. APPX utiliza la firma de Store.
-
-Las actualizaciones de instalaciones EXE corresponden al mecanismo de la app;
-APPX instalado desde Store delega las actualizaciones en Microsoft Store.
-
-Referencias oficiales: [requisitos de EXE/MSI](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-package-requirements)
-y [actualizar una ficha EXE/MSI](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/publish-update-to-your-app-on-store).
+- EXE/NSIS x64: descarga directa desde GitHub Releases (o su copia en R2), con actualizaciones desde GitHub.
+- APPX x64: publicación en Microsoft Store, con consulta y actualización mediante la tienda. No se descarga un EXE de GitHub sobre APPX.
+- R2 es opcional y aloja copias para descargas generales; no se registra una URL de EXE en Partner Center.
 
 ## Novedades para la ficha española
 
-Forma 1.3.0 mejora las conversiones por lotes: reintenta solo los archivos fallidos,
-recuerda formato, calidad y destino, y muestra el tamaño final y el ahorro obtenido.
-Permite cancelar la búsqueda de imágenes e informa las rutas inaccesibles. Al cerrar
-durante una conversión, termina los archivos activos antes de salir. Incluye mejoras
-de rendimiento, seguridad y accesibilidad, y muestra las novedades una sola vez al
-abrir la app después de actualizar. Tus imágenes se procesan localmente.
+Texto preparado, pendiente de validación y publicación: Forma 2.0 reúne todas las
+herramientas en una única aplicación gratuita. Redimensiona, guarda ajustes,
+conserva subcarpetas, renombra por lotes y añade marcas de texto o imagen con vista
+previa. Ajusta el peso de JPEG, WebP y AVIF y vigila carpetas mientras la app está
+abierta. Conserva español e inglés, preferencias, cancelación y cierre seguro.
+Tus imágenes se procesan localmente.
 
 ## What's new for the English listing
 
-Forma 1.3.0 improves batch conversion: retry only failed files, remember format,
-quality and output folder, and see output size and savings. Cancel image searches
-and review inaccessible paths. Closing during conversion finishes active files
-before exiting. Performance, security and accessibility are improved, and release
-notes appear once when opening the app after an update. Images are processed locally.
+Prepared text, pending validation and publication: Forma 2.0 brings all tools into
+one free application. Resize, save presets, preserve subfolders, rename batches and
+add text or image watermarks with a preview. Target JPEG, WebP and AVIF file sizes
+and watch folders while the app is open. Spanish and English, saved preferences,
+cancellation and safe closing remain available. Images are processed locally.
 
 ## Aviso de novedades después de actualizar
 
