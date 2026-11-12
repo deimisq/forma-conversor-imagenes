@@ -16,9 +16,14 @@ export async function applyWatermark(image: Sharp, settings: WatermarkSettings) 
   const width = Math.min(maxWidth, Math.max(1, Math.round(info.width * settings.size / 100)))
   let overlay: Sharp
   if (settings.mode === 'text') {
-    const height = Math.max(1, Math.round(width * .22))
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><text x="0" y="${height * .8}" font-family="sans-serif" font-size="${height * .85}" fill="${settings.color}" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(settings.text)}</text></svg>`
-    overlay = sharp(Buffer.from(svg))
+    // Measure/rasterize the complete glyph run before fitting it to the image.
+    // librsvg does not reliably honour SVG textLength; a fixed SVG viewport
+    // clipped long labels and glyphs with accents/descenders.
+    const text = await sharp({ text: {
+      text: `<span foreground="${settings.color}">${escapeXml(settings.text)}</span>`,
+      font: 'sans 64', rgba: true,
+    } }).png().toBuffer()
+    overlay = sharp(text)
   } else {
     const stat = await fs.stat(settings.imagePath)
     if (!stat.isFile() || stat.size > 20 * 1024 * 1024) throw new Error('La imagen de marca debe ser un archivo de hasta 20 MB.')

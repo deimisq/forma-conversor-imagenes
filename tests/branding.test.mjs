@@ -87,6 +87,22 @@ test('la vista previa coincide con el resultado y no escribe archivos', async t 
   assert.deepEqual(await fs.readdir(dir), before)
 })
 
+test('conserva el final de textos largos y los acentos en conversión y vista previa', async t => {
+  const { dir } = await fixture(t)
+  const input = path.join(dir, 'texto-largo.png')
+  await sharp({ create: { width: 1600, height: 500, channels: 3, background: 'white' } }).png().toFile(input)
+  const settings = defaultSettings(); settings.format = 'png'
+  settings.watermark = { ...settings.watermark, mode: 'text', text: 'W'.repeat(70) + ' Ágj', color: '#000000', opacity: 100, size: 80, margin: 10, position: 'center' }
+  const first = await (await createEncoder(input, settings)).toBuffer()
+  settings.watermark.text = 'W'.repeat(70) + ' Ñpq'
+  const second = await (await createEncoder(input, settings)).toBuffer()
+  assert.notDeepEqual(await sharp(first).raw().toBuffer(), await sharp(second).raw().toBuffer(), 'Changing the trailing text must change the rendered watermark')
+  const preview = await createPreview(input, settings, 0)
+  const previewImage = Buffer.from(preview.dataUrl.split(',')[1], 'base64')
+  const expected = await sharp(second).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+  assert.deepEqual(await sharp(previewImage).raw().toBuffer(), await sharp(expected).raw().toBuffer())
+})
+
 test('los nombres personalizados se reservan sin sobrescribir resultados concurrentes', async t => {
   const { dir, input } = await fixture(t)
   await fs.writeFile(path.join(dir, 'catalogo-001.png'), 'conservar')
