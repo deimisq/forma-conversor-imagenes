@@ -45,6 +45,9 @@ jobs:
         run: node scripts/run-desktop-tests.mjs ${{ matrix.language }} --watch-close
       - name: Generar EXE y APPX sin publicar
         run: node node_modules/electron-builder/cli.js --config ${{ matrix.config }} --config.directories.output=release/ci-${{ matrix.language }} --win --publish never
+      - name: Verificar manifiesto, integridad y recursos empaquetados
+        shell: pwsh
+        run: ./scripts/verify-windows-package.ps1 -OutputDirectory release/ci-${{ matrix.language }} -Language ${{ matrix.language }}
       - name: Añadir instrucciones de prueba
         shell: pwsh
         run: Copy-Item docs/INSTALL-TEST.md release/ci-${{ matrix.language }}/INSTALL-TEST.md

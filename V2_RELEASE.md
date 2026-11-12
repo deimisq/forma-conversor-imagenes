@@ -39,6 +39,8 @@ Paquete local posterior: `release/local-2.0.0/forma-setup-2.0.0.appx`, identidad
 
 ## Puerta de publicación 2.0
 
+GitHub Actions [43238483621](https://github.com/deimisq/forma-conversor-imagenes/actions/runs/43238483621) completó correctamente ambos trabajos ES/EN para el commit `a2d28ea`: tipos, regresiones, escritorio con cierre manual y vigilado y generación de EXE/APPX. Los artefactos se entregaron para pruebas, sin release estable ni carga a R2. La verificación adicional de contenido usa `scripts/verify-windows-package.ps1`: compara código compilado y empaquetado, metadatos, manifiesto, mapa de bloques, avisos y proveedor/canal de actualización. Pasó sobre el APPX local español; su ejecución en CI para ambos pares de paquetes se comprueba por separado. La presencia de un EXE válido no prueba su instalación.
+
 - [ ] Cerrar cualquier fallo detectado durante la validación final.
 - [ ] Revisar avisos y licencias de los componentes que se distribuyen.
 - [ ] Generar y verificar los instaladores EXE y APPX de ambas variantes.
