@@ -64,6 +64,8 @@ Pendientes concretos de esta revisión:
 
 ## Datos locales y compatibilidad
 
+La preferencia `background` en `preferences.json` guarda `closeAction` (`ask`, `hide`, `quit`) y `watchNotifications`. El valor inicial pregunta al cerrar y habilita avisos. Cancelar no guarda una elección; ocultar mantiene el proceso y la vigilancia activos, y salir conserva el cierre seguro. La selección se cambia en Herramientas avanzadas → Bandeja y notificaciones. Las notificaciones muestran inicio y resumen agrupado tras tres segundos sin nuevos resultados; al pulsarlas se restaura la ventana. No se configura inicio automático con Windows.
+
 Las preferencias básicas e idioma conservan `preferences.json`. Las herramientas y ajustes usan `tools-settings.json`; en el primer uso se recuperan formato, calidad y destino antiguos. Los archivos dañados de herramientas se conservan y se informa del error. Las imágenes y previsualizaciones no se guardan en ese archivo. La vigilancia no se reanuda automáticamente tras reiniciar.
 
 ## English

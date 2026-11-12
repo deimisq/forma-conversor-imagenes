@@ -64,7 +64,7 @@ try {
     assert.equal(defaultLanguage, language, 'UI changes must not change the build/update channel')
     assert.throws(() => setLanguage('fr'))
 
-    const { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences } = await loadTypeScript('electron/preferences.ts', language)
+    const { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences, readBackgroundPreferences, writeBackgroundPreferences } = await loadTypeScript('electron/preferences.ts', language)
     const preferencesDirectory = path.join(directory, language)
     assert.equal(await readLanguage(preferencesDirectory), language)
     assert.equal(await readLanguage(preferencesDirectory, 'es'), 'es')
@@ -78,6 +78,12 @@ try {
     const conversion = { format: 'avif', quality: 91, outputDir: directory }
     await Promise.all([writeConversionPreferences(preferencesDirectory, conversion), writeLanguage(preferencesDirectory, 'en')])
     assert.deepEqual(await readConversionPreferences(preferencesDirectory), conversion)
+    assert.deepEqual(await readBackgroundPreferences(preferencesDirectory), { closeAction: 'ask', watchNotifications: true })
+    await Promise.all([writeBackgroundPreferences(preferencesDirectory, { closeAction: 'hide', watchNotifications: false }), writeLanguage(preferencesDirectory, 'en')])
+    assert.deepEqual(await readBackgroundPreferences(preferencesDirectory), { closeAction: 'hide', watchNotifications: false })
+    assert.deepEqual(await readConversionPreferences(preferencesDirectory), conversion)
+    for (const value of [null, {}, { closeAction: 'other', watchNotifications: true }, { closeAction: 'hide', watchNotifications: 'yes' }]) await assert.rejects(writeBackgroundPreferences(preferencesDirectory, value))
+    await writeBackgroundPreferences(preferencesDirectory, { closeAction: 'ask', watchNotifications: true })
     assert.equal(await readLanguage(preferencesDirectory), 'en')
     await assert.rejects(writeConversionPreferences(preferencesDirectory, { ...conversion, quality: 0 }))
     await assert.rejects(writeConversionPreferences(preferencesDirectory, { ...conversion, outputDir: 'relative' }))

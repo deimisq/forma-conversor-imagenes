@@ -6,12 +6,13 @@ import { checkStoreUpdates } from './store-updates'
 import { currentRelease } from '../shared/release'
 import { consumeReleaseNotice } from './release-notice'
 import { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences } from './preferences'
+import { readBackgroundPreferences, writeBackgroundPreferences, type BackgroundPreferences } from './preferences'
 import { createOutputEncoder, createPreview, destinationDirectory, validateConversionOptions, writeNamedOutput } from './conversion.ts'
 import type { ConversionOptions } from './conversion.ts'
 import { createSettingsStore } from './settings-store.ts'
 import { plannedFilename } from '../shared/naming.ts'
 import { existsSync } from 'node:fs'
-import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell, Tray } from 'electron'
 import fs from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
@@ -46,6 +47,45 @@ let closeAfterConversion = false
 let inspectionCancelled = false
 let inspectionInProgress = false
 let releaseNoticePending = false
+let background: BackgroundPreferences = { closeAction: 'ask', watchNotifications: true }
+let tray: Tray | undefined
+let exiting = false
+let closePromptOpen = false
+const local = (es: string, en: string) => language === 'en' ? en : es
+function restoreWindow() { if (!win || win.isDestroyed()) return; win.setSkipTaskbar(false); if (win.isMinimized()) win.restore(); win.show(); win.focus() }
+function requestExit() { exiting = true; win?.close() }
+function ensureTray() {
+  if (!tray) {
+    tray = new Tray(path.join(process.env.VITE_PUBLIC!, 'forma-logo.png'))
+    tray.on('click', restoreWindow)
+    tray.on('double-click', restoreWindow)
+    tray.on('right-click', () => { updateTray(); tray?.popUpContextMenu() })
+  }
+  updateTray()
+}
+function updateTray() {
+  if (!tray) return
+  tray.setToolTip(watcherState.active ? local('Forma · Vigilando carpeta', 'Forma · Watching folder') : 'Forma')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: local('Abrir Forma', 'Open Forma'), click: restoreWindow },
+    { label: local('Detener vigilancia', 'Stop watching'), enabled: watcherState.active, click: () => { folderWatcher?.stop(); cancelRequested = true } },
+    { type: 'separator' },
+    { label: local('Salir de Forma', 'Quit Forma'), click: requestExit },
+  ]))
+}
+function notifyWatch(title: string, body: string) {
+  if (!background.watchNotifications || !Notification.isSupported() || exiting) return
+  try { const notice = new Notification({ title, body, silent: true }); notice.on('click', restoreWindow); notice.show() }
+  catch (error) { console.error('Watch notification:', error) }
+}
+let watchNoticeTimer: ReturnType<typeof setTimeout> | undefined
+let watchNoticeCompleted = 0
+let watchNoticeFailed = 0
+function flushWatchNotice() {
+  clearTimeout(watchNoticeTimer); watchNoticeTimer = undefined
+  if (watchNoticeCompleted || watchNoticeFailed) notifyWatch(local('Carpeta vigilada · Resultado', 'Watched folder · Result'), local(`${watchNoticeCompleted} imágenes convertidas; ${watchNoticeFailed} errores.`, `${watchNoticeCompleted} images converted; ${watchNoticeFailed} errors.`))
+  watchNoticeCompleted = 0; watchNoticeFailed = 0
+}
 const storeManaged = process.windowsStore === true
 let updateCheckInProgress = false
 const updateCheckInterval = 6 * 60 * 60 * 1000
@@ -181,10 +221,27 @@ let folderWatcher: Awaited<ReturnType<typeof startFolderWatcher>> | undefined
 let startingWatcher = false
 let watcherState: WatchStatus = { active: false, processing: false, completed: 0, failed: 0, source: '', output: '' }
 function reportWatcher(state: WatchStatus) {
+  const previous = watcherState
+  if (state.processing && !previous.processing && !watchNoticeTimer) {
+    notifyWatch(local('Convirtiendo imágenes de la carpeta vigilada', 'Converting watched folder images'), path.basename(state.source))
+  }
+  watchNoticeCompleted += Math.max(0, state.completed - previous.completed)
+  watchNoticeFailed += Math.max(0, state.failed - previous.failed)
+  if (state.completed > previous.completed || state.failed > previous.failed) {
+    clearTimeout(watchNoticeTimer)
+    watchNoticeTimer = setTimeout(flushWatchNotice, 3000)
+  }
   watcherState = state
+  updateTray()
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('tools:watch-state', state)
 }
 handle('tools:watch-status', () => watcherState)
+handle('app:background-read', () => background)
+handle('app:background-write', async (_event, value: unknown) => {
+  background = await writeBackgroundPreferences(app.getPath('userData'), value)
+  if (!background.watchNotifications) { clearTimeout(watchNoticeTimer); watchNoticeTimer = undefined; watchNoticeCompleted = 0; watchNoticeFailed = 0 }
+  return background
+})
 handle('tools:watch-stop', () => { folderWatcher?.stop(); cancelRequested = true; return watcherState })
 handle('tools:watch-start', async (_event, value: unknown) => {
   if (startingWatcher || watcherState.active || conversionInProgress || previewInProgress) throw new Error('Ya hay una conversión en curso.')
@@ -279,6 +336,7 @@ handle('app:set-language', async (_event, value: unknown) => {
   try {
     await writeLanguage(app.getPath('userData'), value)
     setLanguage(value)
+    updateTray()
     for (const window of BrowserWindow.getAllWindows()) window.setTitle(t('Forma | Conversor de Imágenes'))
     return value
   } finally {
@@ -346,11 +404,37 @@ function createWindow() {
     },
   })
   win.setMenuBarVisibility(false)
+  win.on('query-session-end', () => { exiting = true })
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   win.webContents.on('will-navigate', (event) => event.preventDefault())
   win.webContents.on('will-attach-webview', (event) => event.preventDefault())
   win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   win.on('close', (event) => {
+    if (!exiting) {
+      event.preventDefault()
+      if (closePromptOpen) return
+      void (async () => {
+        closePromptOpen = true
+        try {
+          let action = background.closeAction
+          if (action === 'ask') {
+            const answer = await dialog.showMessageBox(win!, {
+              type: 'question', title: 'Forma', message: local('¿Quieres cerrar Forma o mantenerla en la bandeja del sistema?', 'Quit Forma or keep it in the system tray?'),
+              detail: local('Al ocultarla, la vigilancia y las conversiones continúan. Puedes abrirla o salir desde su icono junto al reloj.', 'When hidden, watching and conversions continue. Open or quit it using its icon beside the clock.'),
+              buttons: [local('Cerrar Forma', 'Quit Forma'), local('Ocultar en la bandeja', 'Hide in tray'), local('Cancelar', 'Cancel')], defaultId: 1, cancelId: 2,
+              checkboxLabel: local('Recordar mi elección', 'Remember my choice'), checkboxChecked: false, noLink: true,
+            })
+            if (answer.response === 2) return
+            action = answer.response === 1 ? 'hide' : 'quit'
+            if (answer.checkboxChecked) background = await writeBackgroundPreferences(app.getPath('userData'), { ...background, closeAction: action })
+          }
+          if (action === 'hide') { ensureTray(); win?.hide(); win?.setSkipTaskbar(true) }
+          else requestExit()
+        } catch (error) { console.error('Close action:', error); restoreWindow() }
+        finally { closePromptOpen = false }
+      })()
+      return
+    }
     folderWatcher?.stop()
     if (!conversionInProgress && !previewInProgress) return
     event.preventDefault()
@@ -402,7 +486,12 @@ app.on('activate', () => {
   }
 })
 
+app.on('before-quit', () => { exiting = true; folderWatcher?.stop(); clearTimeout(watchNoticeTimer) })
+app.on('will-quit', () => { tray?.destroy(); tray = undefined })
+
 app.whenReady().then(async () => {
+  if (process.platform === 'win32' && !storeManaged) app.setAppUserModelId('com.forma.imageconverter')
+  background = await readBackgroundPreferences(app.getPath('userData'))
   setLanguage(await readLanguage(app.getPath('userData'), systemLanguage(app.getPreferredSystemLanguages())))
   try {
     releaseNoticePending = await consumeReleaseNotice(app.getPath('userData'), app.getVersion())

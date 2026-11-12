@@ -2,6 +2,9 @@
 
 ## [2.0.0] - En preparación, sin publicar
 
+- Pregunta si cerrar u ocultar en la bandeja del sistema, permite recordar y cambiar la elección y mantiene la vigilancia mientras está oculta.
+- Notifica el inicio y el resultado agrupado de conversiones vigiladas; permite desactivar los avisos y abrir Forma desde una notificación.
+
 - Incluye todas las herramientas en una única aplicación gratuita.
 - Redimensiona por ancho, alto, porcentaje y límites conservando proporciones.
 - Crea, aplica, actualiza y elimina ajustes personalizados persistentes.

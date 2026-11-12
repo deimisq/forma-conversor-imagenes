@@ -2,6 +2,9 @@
 
 ## [2.0.0] - In preparation, unpublished
 
+- Ask whether to quit or hide in the system tray, remember and change the choice, and keep watching while hidden.
+- Notify watched conversion starts and grouped results; allow disabling notifications and opening Forma from a notification.
+
 - Include all tools in one free application.
 - Resize by width, height, percentage and bounds while preserving proportions.
 - Create, apply, update and delete persistent custom presets.

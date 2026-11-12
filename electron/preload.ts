@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('imageDesk', {
+  getBackgroundPreferences: () => ipcRenderer.invoke('app:background-read'),
+  setBackgroundPreferences: (value: unknown) => ipcRenderer.invoke('app:background-write', value),
   watchStatus: () => ipcRenderer.invoke('tools:watch-status'),
   startWatching: (value: unknown) => ipcRenderer.invoke('tools:watch-start', value),
   stopWatching: () => ipcRenderer.invoke('tools:watch-stop'),

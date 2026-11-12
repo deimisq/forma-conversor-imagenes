@@ -53,3 +53,18 @@ export async function writeConversionPreferences(directory: string, value: unkno
   if (!validConversionPreferences(value)) throw new Error('Invalid conversion preferences')
   await writePreferences(directory, { conversion: value })
 }
+
+export type BackgroundPreferences = { closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }
+export async function readBackgroundPreferences(directory: string): Promise<BackgroundPreferences> {
+  try {
+    const value = JSON.parse(await fs.readFile(path.join(directory, 'preferences.json'), 'utf8')).background
+    return { closeAction: ['ask', 'hide', 'quit'].includes(value?.closeAction) ? value.closeAction : 'ask', watchNotifications: typeof value?.watchNotifications === 'boolean' ? value.watchNotifications : true }
+  } catch { return { closeAction: 'ask', watchNotifications: true } }
+}
+export async function writeBackgroundPreferences(directory: string, value: unknown): Promise<BackgroundPreferences> {
+  const item = value as BackgroundPreferences | null
+  if (!item || !['ask', 'hide', 'quit'].includes(item.closeAction) || typeof item.watchNotifications !== 'boolean') throw new Error('Invalid background preferences')
+  const result: BackgroundPreferences = { closeAction: item.closeAction, watchNotifications: item.watchNotifications }
+  await writePreferences(directory, { background: result })
+  return result
+}

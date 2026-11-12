@@ -21,6 +21,8 @@ Conversión de imágenes por lotes para Windows. Gratis, de código abierto y en
 
 ## Una única app gratuita
 
+La carpeta vigilada muestra notificaciones de Windows al convertir imágenes y un resumen del resultado. Al cerrar Forma puedes salir u ocultarla en la bandeja junto al reloj y recordar tu elección. La vigilancia continúa mientras está oculta. Puedes restaurarla o salir desde el icono, y cambiar la elección o desactivar los avisos en **Herramientas avanzadas → Bandeja y notificaciones**.
+
 Forma tiene una sola edición gratuita. Las funciones futuras se incorporarán a esta misma aplicación, sin una edición Pro separada ni niveles de pago. Los paquetes en español e inglés son variantes de la misma app.
 
 La meta activa es **Forma 2.0**: ocho herramientas incluidas en la única app gratuita. El código de desarrollo ya integra redimensionado, ajustes, subcarpetas, renombrado, marcas, vista previa, peso objetivo y vigilancia. Consulta [los criterios de entrega](V2_RELEASE.md) y la [hoja de ruta](ROADMAP.md).

@@ -5,6 +5,8 @@ export {}
 declare global {
   interface Window {
     imageDesk: {
+      getBackgroundPreferences: () => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>
+      setBackgroundPreferences: (value: { closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }) => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>
       watchStatus: () => Promise<WatchStatus>
       startWatching: (value: { source: string; outputDir: string; settings: ConversionSettings; includeExisting: boolean }) => Promise<WatchStatus>
       stopWatching: () => Promise<WatchStatus>

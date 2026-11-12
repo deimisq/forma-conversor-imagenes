@@ -21,6 +21,8 @@ Free, open-source batch image conversion for Windows. Your images stay on your c
 
 ## One free app
 
+Watched folders show Windows notifications when converting images and a summary of the results. Closing Forma lets you quit or hide it in the system tray and remember your choice. Watching continues while hidden. Restore or quit from the tray icon; change the choice or disable notifications in **Advanced tools → System tray and notifications**.
+
 Forma has a single free edition. Future features will join this same application, without a separate Pro edition or paid feature tiers. The Spanish and English packages are variants of the same app.
 
 The active goal is **Forma 2.0**, including all eight tools in the single free edition. The development source implements resizing, presets, subfolders, batch naming, watermarks, preview, target file size and watched folders. See the [release criteria](V2_RELEASE.md) and [roadmap](ROADMAP.md).

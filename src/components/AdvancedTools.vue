@@ -12,6 +12,14 @@ const presets = ref<SavedPreset[]>([])
 const watchState = ref<WatchStatus>({ active: false, processing: false, completed: 0, failed: 0, source: '', output: '' })
 const watchSource = ref('')
 const includeExisting = ref(false)
+const background = ref({ closeAction: 'ask' as 'ask' | 'hide' | 'quit', watchNotifications: true })
+const savingBackground = ref(false)
+async function saveBackground() {
+  savingBackground.value = true
+  try { background.value = await window.imageDesk.setBackgroundPreferences({ ...background.value }) }
+  catch (cause) { report(cause) }
+  finally { savingBackground.value = false }
+}
 const startingWatch = ref(false)
 let removeWatchListener = () => {}
 function updateWatch(state: WatchStatus) { watchState.value = state; emit('watching', state.active || state.processing) }
@@ -54,6 +62,7 @@ onMounted(async () => {
   if (!window.imageDesk) return
   try {
     const saved = await window.imageDesk.loadTools()
+    background.value = await window.imageDesk.getBackgroundPreferences()
     settings.value = saved.preferences
     presets.value = saved.presets
     await nextTick()
@@ -64,7 +73,10 @@ onMounted(async () => {
   } catch (cause) { report(cause) }
 })
 onBeforeUnmount(() => { removeWatchListener(); clearTimeout(timer); if (ready.value) void persist() })
-async function open() { dialog.value?.showModal() }
+async function open() {
+  try { background.value = await window.imageDesk.getBackgroundPreferences() } catch (cause) { report(cause) }
+  dialog.value?.showModal()
+}
 function trapFocus(event: KeyboardEvent) {
   if (event.key !== 'Tab' || !dialog.value) return
   const controls = Array.from(dialog.value.querySelectorAll<HTMLElement>('button, input, select, [tabindex]')).filter(element => !element.matches(':disabled') && element.tabIndex >= 0 && element.getClientRects().length > 0)
@@ -153,6 +165,18 @@ async function showPreview() {
         </template>
       </section>
     </fieldset>
+    <section class="tools-background">
+      <h3>{{ l('Bandeja y notificaciones', 'System tray and notifications') }}</h3>
+      <label>{{ l('Al cerrar Forma', 'When closing Forma') }}
+        <select v-model="background.closeAction" :disabled="savingBackground" @change="saveBackground">
+          <option value="ask">{{ l('Preguntar siempre', 'Always ask') }}</option>
+          <option value="hide">{{ l('Ocultar en la bandeja del sistema', 'Hide in the system tray') }}</option>
+          <option value="quit">{{ l('Cerrar la aplicación', 'Quit the application') }}</option>
+        </select>
+      </label>
+      <label class="tools-check"><input v-model="background.watchNotifications" type="checkbox" :disabled="savingBackground" @change="saveBackground" />{{ l('Notificar conversiones de la carpeta vigilada', 'Notify watched folder conversions') }}</label>
+      <p class="tools-hint">{{ l('Ocultar mantiene la vigilancia activa. Para salir, usa el menú del icono junto al reloj. Puedes cambiar aquí una elección recordada.', 'Hiding keeps watching active. To quit, use the tray icon menu beside the clock. Change a remembered choice here.') }}</p>
+    </section>
     <section class="tools-watch">
       <h3>{{ l('Carpeta vigilada', 'Watched folder') }}</h3>
       <p class="tools-hint">{{ l('Convierte imágenes nuevas o modificadas cuando dejan de cambiar. La vigilancia funciona mientras Forma está abierta y usa las opciones actuales al iniciarla. El destino debe estar fuera del origen.', 'Converts new or modified images after they stop changing. Watching runs while Forma is open and uses the settings captured when started. Output must be outside the source folder.') }}</p>
@@ -185,6 +209,6 @@ input, select { border: 1px solid #d5dfd7; border-radius: 6px; padding: 9px 10px
 button { border: 1px solid #c8d8cc; background: #edf5f0; border-radius: 6px; padding: 9px 13px; cursor: pointer; font-size: 12px; } button:disabled { opacity: .5; cursor: default; }
 .tools-actions { display: flex; flex-wrap: wrap; gap: 8px; }.tools-hint { font-size: 11px; color: #67796e; overflow-wrap: anywhere; line-height: 1.6; }
 .tools-error { color: #983d20; background: #fff0e8; padding: 12px 26px; font-size: 12px; }
-.tools-watch { padding: 22px 26px; border-bottom: 1px solid var(--line); }
+.tools-watch, .tools-background { padding: 22px 26px; border-bottom: 1px solid var(--line); }
 .tools-preview { padding: 22px 26px; } figure { margin: 18px 0 0; text-align: center; } figure img { max-width: 100%; max-height: 360px; object-fit: contain; } figcaption { font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
 </style>

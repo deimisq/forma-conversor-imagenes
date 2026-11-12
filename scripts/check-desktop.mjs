@@ -1,5 +1,5 @@
 // Run with Electron after build:app; the test window stays hidden and uses isolated data.
-import { app, BrowserWindow, dialog, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, shell, ipcMain, Notification, Tray } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import assert from 'node:assert/strict'
@@ -18,8 +18,19 @@ await fs.writeFile(path.join(app.getPath('userData'), 'preferences.json'), JSON.
 await fs.writeFile(path.join(app.getPath('userData'), 'release-notice.json'), JSON.stringify({ version: '1.3.0' }))
 const releaseNotices = []
 const originalMessageBox = dialog.showMessageBox
+const originalNotificationShow = Notification.prototype.show
+const notices = []
+Notification.prototype.show = function () { notices.push({ title: this.title, body: this.body }) }
+const originalTrayMenu = Tray.prototype.setContextMenu
+let trayMenu
+Tray.prototype.setContextMenu = function (menu) { trayMenu = menu; return originalTrayMenu.call(this, menu) }
+let closeAnswer = { response: 0, checkboxChecked: false }
+let closeQuestions = 0
 // Capture the native notice without showing an interactive dialog in CI.
-dialog.showMessageBox = async (_window, options) => { releaseNotices.push(options); return { response: 0, checkboxChecked: false } }
+dialog.showMessageBox = async (_window, options) => {
+  if (options.type === 'question') { closeQuestions++; return closeAnswer }
+  releaseNotices.push(options); return { response: 0, checkboxChecked: false }
+}
 // The app's window-all-closed hook must not exit before assertions/cleanup set the exit code.
 app.on('before-quit', (event) => event.preventDefault())
 BrowserWindow.prototype.show = function () {}
@@ -271,9 +282,41 @@ try {
   await fs.mkdir(watchedSource)
   await evaluate('window.imageDesk.startWatching(' + JSON.stringify({ source: watchedSource, outputDir: watchedOutput, settings: custom, includeExisting: false }) + ')')
   assert.equal((await evaluate('window.imageDesk.watchStatus()')).active, true)
+  stage = 'hiding in system tray without stopping watching'
+  assert.deepEqual(await evaluate('window.imageDesk.getBackgroundPreferences()'), { closeAction: 'ask', watchNotifications: true })
+  closeAnswer = { response: 2, checkboxChecked: true }
+  testWindow.close()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(testWindow.isDestroyed(), false)
+  assert.equal((await evaluate('window.imageDesk.getBackgroundPreferences()')).closeAction, 'ask', 'Cancel never remembers a choice')
+  closeAnswer = { response: 1, checkboxChecked: true }
+  testWindow.close()
+  for (let attempt = 0; attempt < 100 && (await evaluate('window.imageDesk.getBackgroundPreferences()')).closeAction !== 'hide'; attempt++) await new Promise(resolve => setTimeout(resolve, 20))
+  assert.equal((await evaluate('window.imageDesk.getBackgroundPreferences()')).closeAction, 'hide')
+  assert.equal(testWindow.isDestroyed(), false)
+  assert.equal((await evaluate('window.imageDesk.watchStatus()')).active, true, 'Hiding must keep watching active')
+  assert.equal(JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'preferences.json'), 'utf8')).background.closeAction, 'hide')
+  const questionCount = closeQuestions
+  testWindow.close()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(closeQuestions, questionCount, 'Remembered hiding must not ask again')
+  assert.equal(trayMenu.items[0].label, 'Abrir Forma')
+  assert.equal(trayMenu.items[1].enabled, true)
+  trayMenu.items[0].click()
+  await assert.rejects(evaluate('window.imageDesk.setBackgroundPreferences({ closeAction: "invalid", watchNotifications: true })'))
+  await evaluate('window.imageDesk.setBackgroundPreferences({ closeAction: "quit", watchNotifications: true })')
   await assert.rejects(evaluate('window.imageDesk.convert(' + JSON.stringify({ files: [inputs[0]], outputDir, format: 'png', quality: 84 }) + ')'))
   await fs.copyFile(inputs[0], path.join(watchedSource, 'arrival.png'))
   await pollUi('document.querySelector(".tools-watch")?.textContent.includes("1 correctas")')
+  await new Promise(resolve => setTimeout(resolve, 3200))
+  assert.ok(notices.some(notice => notice.title === 'Convirtiendo imágenes de la carpeta vigilada'))
+  assert.ok(notices.some(notice => notice.body === '1 imágenes convertidas; 0 errores.'))
+  await evaluate('window.imageDesk.setBackgroundPreferences({ closeAction: "quit", watchNotifications: false })')
+  const noticeCount = notices.length
+  await fs.copyFile(inputs[0], path.join(watchedSource, 'silent-arrival.png'))
+  await pollUi('document.querySelector(".tools-watch")?.textContent.includes("2 correctas")')
+  await new Promise(resolve => setTimeout(resolve, 3200))
+  assert.equal(notices.length, noticeCount, 'Disabling notifications suppresses both start and result notices')
   await evaluate('window.imageDesk.stopWatching()')
   const watchedNamed = path.join(watchedOutput, path.basename(watchedSource), 'v2-007.png')
   assert.equal((await sharp(watchedNamed).metadata()).width, 2)
@@ -318,6 +361,8 @@ try {
   process.exitCode = 1
 } finally {
   dialog.showMessageBox = originalMessageBox
+  Notification.prototype.show = originalNotificationShow
+  Tray.prototype.setContextMenu = originalTrayMenu
   clearTimeout(timer)
   if (testWindow && !testWindow.isDestroyed()) testWindow.destroy()
   app.exit(process.exitCode ?? 0)
