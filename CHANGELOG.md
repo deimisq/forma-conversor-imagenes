@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## Sin publicar · Desarrollo posterior a 2.0
+
+- Añade apoyo voluntario mediante GitHub Sponsors en la pantalla principal, sin desbloqueo de funciones.
+- Compara original/resultado, selecciona la imagen del lote y muestra el peso real del archivo codificado.
+- Añade recorte central, relleno de lienzo, fondo JPEG, giro, espejos y escala de grises.
+- Permite incluir perfil sRGB sin EXIF, JPEG progresivo y WebP sin pérdida.
+- Añade ejemplos Web/Catálogo e importación/exportación de ajustes JSON sin rutas de marcas.
+- Mantiene compatibilidad de ajustes anteriores y documenta la investigación de próximas herramientas.
+
+Estos cambios no forman parte del tag 2.0.0 ni del paquete enviado a Store. [Estado y límites](docs/NEXT_VERSION.md).
+
 ## [2.0.0] - En preparación, sin publicar
 
 - Muestra banderas también en las opciones del selector de idioma, con navegación por teclado.

@@ -288,7 +288,7 @@ handle('tools:preview', async (_event, value: unknown) => {
   if (conversionInProgress || previewInProgress || watcherState.active || startingWatcher) throw new Error('Ya hay una conversión en curso.')
   const options = validateConversionOptions(value)
   previewInProgress = true
-  try { return await createPreview(options.files[0], options, 0) }
+  try { return await createPreview(options.files[0], options, options.sequence?.[0] ?? 0) }
   finally { previewInProgress = false; if (closeAfterConversion) win?.close() }
 })
 handle('preferences:read', () => readConversionPreferences(app.getPath('userData')))
@@ -328,6 +328,7 @@ handle('folder:open', async (_event, folder: unknown) => {
   if (error) throw new Error(error)
 })
 handle('app:version', () => app.getVersion())
+handle('app:sponsor', () => shell.openExternal('https://github.com/sponsors/deimisq'))
 handle('app:language', () => language)
 let savingLanguage = false
 handle('app:set-language', async (_event, value: unknown) => {

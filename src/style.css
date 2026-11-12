@@ -26,6 +26,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .brand-mark { width: 31px; height: 31px; flex: 0 0 31px; display: block; object-fit: contain; border-radius: 9px 9px 9px 3px; }
 .brand-dot { color: var(--orange); }
 .topbar-right { display: flex; align-items: center; gap: 16px; }
+.sponsor-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #e6bdd2; border-radius: 6px; background: #fff5fa; color: #9b3c70; font-size: 11px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.sponsor-button:hover { background: #fce5f1; border-color: #ce7da5; }
+.sponsor-button:focus-visible { outline: 3px solid #ce7da5; outline-offset: 2px; }
+@media (max-width: 950px) { .sponsor-button span { display: none; } }
 .language-select { position: relative; display: flex; align-items: center; flex: 0 0 auto; gap: 7px; height: 32px; padding: 0 8px; border: 1px solid #dce8df; border-radius: 5px; background: #fff; color: #426c54; }
 .language-flag { display: block; flex: 0 0 auto; border-radius: 2px; overflow: hidden; }
 .language-select select { appearance: none; padding: 7px 17px 7px 0; border: 0; background: transparent; color: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }

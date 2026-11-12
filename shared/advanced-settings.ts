@@ -1,16 +1,17 @@
 export type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
-export type ResizeMode = 'none' | 'width' | 'height' | 'percentage' | 'bounds'
+export type ResizeMode = 'none' | 'width' | 'height' | 'percentage' | 'bounds' | 'cover' | 'contain'
+export type ImageAdjustments = { background: string; rotation: 0 | 90 | 180 | 270; flip: boolean; flop: boolean; grayscale: boolean; metadata: 'strip' | 'color'; jpegProgressive: boolean; webpLossless: boolean }
 export type ResizeSettings = { mode: ResizeMode; width: number; height: number; percentage: number; allowEnlargement: boolean }
 export type NamingSettings = { enabled: boolean; prefix: string; suffix: string; numbered: boolean; start: number; padding: number; keepOriginalName: boolean }
 export type WatermarkSettings = { mode: 'none' | 'text' | 'image'; text: string; imagePath: string; color: string; size: number; opacity: number; margin: number; position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' }
 export type TargetSettings = { enabled: boolean; maxKB: number; minQuality: number; allowResize: boolean }
-export type ConversionSettings = { target: TargetSettings; format: OutputFormat; quality: number; resize: ResizeSettings; preserveFolders: boolean; naming: NamingSettings; watermark: WatermarkSettings }
+export type ConversionSettings = { adjustments: ImageAdjustments; target: TargetSettings; format: OutputFormat; quality: number; resize: ResizeSettings; preserveFolders: boolean; naming: NamingSettings; watermark: WatermarkSettings }
 export type Preferences = ConversionSettings & { outputDirectory: string }
 export type SavedPreset = { id: string; name: string; settings: ConversionSettings }
 export type SavedSettings = { version: 1; preferences: Preferences; presets: SavedPreset[] }
 
 export function defaultSettings(): ConversionSettings {
-  return { target: { enabled: false, maxKB: 500, minQuality: 30, allowResize: false }, format: 'webp', quality: 84, resize: { mode: 'none', width: 1920, height: 1080, percentage: 50, allowEnlargement: false }, preserveFolders: false,
+  return { adjustments: { background: '#ffffff', rotation: 0, flip: false, flop: false, grayscale: false, metadata: 'strip', jpegProgressive: false, webpLossless: false }, target: { enabled: false, maxKB: 500, minQuality: 30, allowResize: false }, format: 'webp', quality: 84, resize: { mode: 'none', width: 1920, height: 1080, percentage: 50, allowEnlargement: false }, preserveFolders: false,
     naming: { enabled: false, prefix: '', suffix: '', numbered: false, start: 1, padding: 3, keepOriginalName: true },
     watermark: { mode: 'none', text: '© Mi marca', imagePath: '', color: '#ffffff', size: 25, opacity: 65, margin: 20, position: 'bottom-right' } }
 }
@@ -24,7 +25,7 @@ export function validateSettings(value: unknown): ConversionSettings {
   const resize = settings.resize ?? defaults.resize
   if (!resize || typeof resize !== 'object') throw new Error('El redimensionado no es válido.')
   const r = resize as Record<string, unknown>
-  if (typeof r.mode !== 'string' || !['none', 'width', 'height', 'percentage', 'bounds'].includes(r.mode)) throw new Error('El modo de redimensionado no es válido.')
+  if (typeof r.mode !== 'string' || !['none', 'width', 'height', 'percentage', 'bounds', 'cover', 'contain'].includes(r.mode)) throw new Error('El modo de redimensionado no es válido.')
   for (const dimension of ['width', 'height'] as const) {
     if (typeof r[dimension] !== 'number' || !Number.isInteger(r[dimension]) || r[dimension] < 1 || r[dimension] > 30000) throw new Error('Las dimensiones deben estar entre 1 y 30 000 píxeles.')
   }
@@ -38,10 +39,15 @@ export function validateSettings(value: unknown): ConversionSettings {
   if (g.enabled && !['jpeg', 'webp', 'avif'].includes(settings.format)) throw new Error('El peso objetivo admite JPEG, WebP y AVIF.')
   if (g.enabled && (g.minQuality as number) > settings.quality) throw new Error('La calidad mínima no puede superar la calidad elegida.')
   const naming = settings.naming ?? defaults.naming
+  const adjustments = settings.adjustments ?? defaults.adjustments
+  if (!adjustments || typeof adjustments !== 'object') throw new Error('Los ajustes de imagen no son válidos.')
+  const a = adjustments as Record<string, unknown>
+  if (typeof a.background !== 'string' || !/^#[0-9a-f]{6}$/i.test(a.background) || ![0, 90, 180, 270].includes(a.rotation as number) || !['strip', 'color'].includes(a.metadata as string) || ['flip', 'flop', 'grayscale', 'jpegProgressive', 'webpLossless'].some(key => typeof a[key] !== 'boolean')) throw new Error('Los ajustes de imagen no son válidos.')
+  if (g.enabled && settings.format === 'webp' && a.webpLossless) throw new Error('WebP sin pérdida no admite peso objetivo.')
   const watermark = settings.watermark ?? defaults.watermark
   validateNaming(naming)
   validateWatermark(watermark)
-  return { target: { ...(target as TargetSettings) }, format: settings.format as OutputFormat, quality: settings.quality,
+  return { adjustments: { ...(adjustments as ImageAdjustments) }, target: { ...(target as TargetSettings) }, format: settings.format as OutputFormat, quality: settings.quality,
     resize: { mode: r.mode as ResizeMode, width: r.width as number, height: r.height as number, percentage: r.percentage, allowEnlargement: r.allowEnlargement },
     preserveFolders: (settings.preserveFolders as boolean | undefined) ?? false,
     naming: { ...(naming as NamingSettings) }, watermark: { ...(watermark as WatermarkSettings) } }

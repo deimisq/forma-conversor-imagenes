@@ -4,7 +4,9 @@ Revisado el **12 de noviembre de 2026** contra `main`, metadatos 2.0.0 y fuentes
 
 ## Estado y paquetes
 
-Forma 2.0 está en `main` e incluye ocho herramientas, bandeja, notificaciones de vigilancia y banderas en el selector. El tag `v2.0.0` ya existe: no recrearlo ni moverlo. Su [compilación](https://github.com/deimisq/forma-conversor-imagenes/actions/runs/43254721865) genera un **release borrador** y omite R2. La ejecuci�n termin� correctamente; comprobar los cuatro paquetes adjuntos del borrador antes de utilizarlos. La [compilación de prueba ES/EN](https://github.com/deimisq/forma-conversor-imagenes/actions/runs/43252700285) terminó correctamente, incluidas pruebas de escritorio y verificación de paquetes. Pendientes reales: [V2_RELEASE.md](V2_RELEASE.md).
+**Actualización del propietario:** Forma 2.0 ya está enviada a Microsoft Store y pendiente de aprobación. No se verificó Partner Center desde esta conversación. Los campos siguientes quedan como referencia de la entrega y futuras revisiones; no repetir el envío ni asumir que ya está aprobada.
+
+Forma 2.0 está en `main` e incluye ocho herramientas, bandeja, notificaciones de vigilancia y banderas en el selector. El tag `v2.0.0` ya existe: no recrearlo ni moverlo. Su [compilación](https://github.com/deimisq/forma-conversor-imagenes/actions/runs/43254721865) genera un **release borrador** y omite R2. La ejecución terminó correctamente; comprobar los cuatro paquetes adjuntos del borrador antes de utilizarlos. La [compilación de prueba ES/EN](https://github.com/deimisq/forma-conversor-imagenes/actions/runs/43252700285) terminó correctamente, incluidas pruebas de escritorio y verificación de paquetes. Pendientes reales: [V2_RELEASE.md](V2_RELEASE.md).
 
 | Variante | EXE directo | APPX Store |
 | --- | --- | --- |

@@ -5,7 +5,7 @@ import AdvancedTools from './components/AdvancedTools.vue'
 import { defaultSettings, type ConversionSettings } from '../shared/advanced-settings.ts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import formaLogo from './assets/forma-logo.svg'
-import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, Download, FileImage, FolderOpen, LoaderCircle, Plus, RefreshCw, RotateCw, Settings2, ShieldCheck, X } from '@lucide/vue'
+import { ArrowDownToLine, ArrowRight, Check, ChevronDown, CircleAlert, Download, FileImage, FolderOpen, Heart, LoaderCircle, Plus, RefreshCw, RotateCw, Settings2, ShieldCheck, X } from '@lucide/vue'
 
 type ImageFile = { sourceRoot?: string; path: string; name: string; size: number; status: 'queued' | 'converting' | 'done' | 'error' | 'cancelled'; output?: string; message?: string }
 type OutputFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'
@@ -37,6 +37,10 @@ async function changeLanguage(value: Language) {
   }
 }
 const runtimeWarning = ref('')
+async function openSponsors() {
+  try { if (desktopApiAvailable) await window.imageDesk.openSponsors(); else window.open('https://github.com/sponsors/deimisq', '_blank', 'noopener,noreferrer') }
+  catch { runtimeWarning.value = selectedLanguage.value === 'en' ? 'Could not open GitHub Sponsors.' : 'No se pudo abrir GitHub Sponsors.' }
+}
 const appVersion = ref('')
 const updateState = ref<UpdateState>({ status: 'idle' })
 const format = ref<OutputFormat>('webp')
@@ -337,6 +341,7 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand"><img :src="formaLogo" class="brand-mark" alt="" /><span>FORMA<span class="brand-dot">.</span></span></div>
       <div class="topbar-right">
+        <button class="sponsor-button" :title="selectedLanguage === 'en' ? 'Support Forma on GitHub Sponsors (opens browser)' : 'Apoyar Forma en GitHub Sponsors (abre el navegador)'" :aria-label="selectedLanguage === 'en' ? 'Support Forma on GitHub Sponsors' : 'Apoyar Forma en GitHub Sponsors'" @click="openSponsors"><Heart :size="15" aria-hidden="true" /><span>{{ selectedLanguage === 'en' ? 'Support Forma' : 'Apoyar Forma' }}</span></button>
         <LanguageSelector :value="selectedLanguage" :disabled="savingLanguage" :label="t('Idioma')" @change="changeLanguage" />
         <span class="local-badge"><ShieldCheck :size="14" /> {{ t('Procesamiento local') }}</span>
         <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading' || (busy && updateState.status === 'downloaded')" :aria-label="updateActionLabel" :title="updateState.message ? t(updateState.message) : updateActionLabel" @click="runUpdateAction">
@@ -428,7 +433,7 @@ onBeforeUnmount(() => {
             <button class="output-select" :disabled="!desktopApiAvailable || busy || watching" @click="chooseOutput"><FolderOpen :size="16" /><span :title="outputDirectory">{{ shortPath(outputDirectory) }}</span><ArrowRight :size="15" /></button>
           </div>
 
-          <AdvancedTools v-model="tools" :format="format" :quality="quality" :output-directory="outputDirectory" :language="selectedLanguage" :busy="busy" :first-file="files[0]?.path" @apply="applyTools" @watching="watching = $event" />
+          <AdvancedTools v-model="tools" :format="format" :quality="quality" :output-directory="outputDirectory" :language="selectedLanguage" :busy="busy" :first-file="files[0]?.path" :preview-files="files" @apply="applyTools" @watching="watching = $event" />
           <div class="settings-spacer"></div>
           <p v-if="batchError" class="runtime-warning" role="alert">{{ batchError }}</p>
           <div v-if="busy || finished" class="progress-area">

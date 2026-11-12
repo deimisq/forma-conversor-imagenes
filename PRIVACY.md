@@ -50,6 +50,8 @@ Las copias opcionales de los instaladores de descarga directa pueden alojarse en
 
 ## Microsoft Store
 
+El botón voluntario de apoyo abre GitHub Sponsors en el navegador. No transmite imágenes ni rutas locales; GitHub gestiona la navegación, cuenta y posibles pagos según sus condiciones. Forma no recibe datos bancarios ni verifica donaciones para desbloquear herramientas. Los ajustes JSON exportados contienen las opciones y texto de marca; se excluyen la ruta y el archivo de imagen de marca. Revisa el contenido antes de compartirlo.
+
 Las consultas APPX a Store pueden iniciarse desde la interfaz; no descargan instaladores GitHub. Microsoft Store administra sus descargas e instalaciones según la configuración de actualizaciones de Windows.
 
 Microsoft puede procesar información relacionada con tu cuenta, la descarga, la licencia y las actualizaciones de la aplicación de acuerdo con sus propias condiciones y su [Declaración de privacidad](https://privacy.microsoft.com/privacystatement). Forma no recibe tus credenciales ni los datos de pago de Microsoft Store.

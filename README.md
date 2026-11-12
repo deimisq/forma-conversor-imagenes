@@ -21,6 +21,10 @@ Conversión de imágenes por lotes para Windows. Gratis, de código abierto y en
 
 ## Una única app gratuita
 
+**Desarrollo posterior a 2.0 (sin publicar):** comparación original/resultado para elegir imágenes del lote, peso real en preview, recorte/relleno, fondo JPEG, giro/espejos, escala de grises, perfil sRGB sin EXIF, JPEG progresivo, WebP sin pérdida y ajustes JSON compartibles. Estas mejoras no pertenecen al paquete 2.0 ya enviado a Store. Consulta [el estado de implementación](docs/NEXT_VERSION.md).
+
+Puedes apoyar voluntariamente el desarrollo con el botón **Apoyar Forma** de la barra superior o desde [GitHub Sponsors](https://github.com/sponsors/deimisq). Abre el navegador; las donaciones no desbloquean funciones y Forma sigue siendo gratuita.
+
 La carpeta vigilada muestra notificaciones de Windows al convertir imágenes y un resumen del resultado. Al cerrar Forma puedes salir u ocultarla en la bandeja junto al reloj y recordar tu elección. La vigilancia continúa mientras está oculta. Puedes restaurarla o salir desde el icono, y cambiar la elección o desactivar los avisos en **Herramientas avanzadas → Bandeja y notificaciones**.
 
 Forma tiene una sola edición gratuita. Las funciones futuras se incorporarán a esta misma aplicación, sin una edición Pro separada ni niveles de pago. Los paquetes en español e inglés son variantes de la misma app.

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { defaultSettings, type ConversionSettings, type SavedPreset } from '../../shared/advanced-settings.ts'
+import { defaultSettings, validateSettings, type ConversionSettings, type SavedPreset } from '../../shared/advanced-settings.ts'
 import type { WatchStatus } from '../../electron/folder-watcher.ts'
 import { toolMessage } from '../../shared/tool-errors.ts'
 import { plannedFilename } from '../../shared/naming.ts'
-const props = defineProps<{ modelValue: ConversionSettings; format: ConversionSettings['format']; quality: number; outputDirectory: string; language: 'es' | 'en'; busy: boolean; firstFile?: string }>()
+const props = defineProps<{ modelValue: ConversionSettings; format: ConversionSettings['format']; quality: number; outputDirectory: string; language: 'es' | 'en'; busy: boolean; firstFile?: string; previewFiles?: { path: string; name: string }[] }>()
 const emit = defineEmits<{ 'update:modelValue': [ConversionSettings]; apply: [ConversionSettings]; watching: [boolean] }>()
 const l = (es: string, en: string) => props.language === 'en' ? en : es
 const settings = ref<ConversionSettings>(defaultSettings())
@@ -33,6 +33,40 @@ async function startWatch() {
 async function stopWatch() { try { updateWatch(await window.imageDesk.stopWatching()) } catch (cause) { report(cause) } }
 const selectedPreset = ref('')
 const presetName = ref('')
+const importInput = ref<HTMLInputElement | null>(null)
+const previewSelection = ref('')
+const previewInput = computed(() => props.previewFiles?.some(file => file.path === previewSelection.value) ? previewSelection.value : props.firstFile)
+const previewIndex = computed(() => Math.max(0, props.previewFiles?.findIndex(file => file.path === previewInput.value) ?? 0))
+function builtInPreset(kind: 'web' | 'catalog') {
+  const next = defaultSettings()
+  next.resize = { ...next.resize, mode: kind === 'web' ? 'bounds' : 'contain', width: kind === 'web' ? 1920 : 1200, height: kind === 'web' ? 1080 : 1200 }
+  settings.value = next; selectedPreset.value = ''; presetName.value = kind === 'web' ? 'Web 1920' : l('Catálogo 1200', 'Catalog 1200')
+  emit('apply', JSON.parse(JSON.stringify(next)))
+}
+async function importPreset(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  saving.value = true
+  try {
+    if (file.size > 1024 * 1024) throw new Error(l('El ajuste admite hasta 1 MB.', 'Preset files support up to 1 MB.'))
+    const data = JSON.parse(await file.text())
+    if (data?.version !== 1 || typeof data.name !== 'string') throw new Error(l('El archivo de ajuste no es válido.', 'Invalid preset file.'))
+    const saved = await window.imageDesk.savePreset({ name: data.name, settings: validateSettings(data.settings) })
+    presets.value = saved.presets; selectedPreset.value = saved.presets.find(item => item.name === data.name.trim())?.id || ''; applyPreset(); error.value = ''
+  } catch (cause) { report(cause) }
+  finally { input.value = ''; saving.value = false }
+}
+function exportPreset() {
+  const preset = presets.value.find(item => item.id === selectedPreset.value)
+  if (!preset) return
+  const portable = JSON.parse(JSON.stringify(preset.settings)) as ConversionSettings
+  portable.watermark.imagePath = ''
+  if (portable.watermark.mode === 'image') portable.watermark.mode = 'none'
+  const url = URL.createObjectURL(new Blob([JSON.stringify({ version: 1, name: preset.name, settings: portable }, null, 2)], { type: 'application/json' }))
+  const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'forma-preset.json'; anchor.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 const dialog = ref<HTMLDialogElement | null>(null)
 const ready = ref(false)
 const saving = ref(false)
@@ -43,7 +77,7 @@ const current = computed(() => ({ ...settings.value, format: props.format, quali
 const plannedName = computed(() => { try { return props.firstFile ? plannedFilename(props.firstFile, current.value, 0) : '' } catch { return l('Revisa las opciones de nombre.', 'Review the naming options.') } })
 let timer: ReturnType<typeof setTimeout> | undefined
 let revision = 0
-watch(() => props.firstFile, () => { revision++; preview.value = null })
+watch(previewInput, () => { revision++; preview.value = null })
 function report(cause: unknown) {
   error.value = toolMessage(cause, props.language)
 }
@@ -117,7 +151,7 @@ async function showPreview() {
   previewing.value = true
   const version = revision
   try {
-    const result = await window.imageDesk.preview({ ...JSON.parse(JSON.stringify(current.value)), files: [props.firstFile], outputDir: props.outputDirectory })
+    const result = await window.imageDesk.preview({ ...JSON.parse(JSON.stringify(current.value)), files: [previewInput.value], sequence: [previewIndex.value], outputDir: props.outputDirectory })
     if (version === revision) preview.value = result
     error.value = ''
   } catch (cause) { report(cause) }
@@ -133,15 +167,28 @@ async function showPreview() {
     <p v-if="error" class="tools-error" role="alert">{{ error }}</p>
     <fieldset :disabled="busy || saving || previewing || watchState.active || watchState.processing || startingWatch" class="tools-content">
       <section class="tools-section"><h3>{{ l('Mis ajustes', 'My presets') }}</h3>
+        <div class="tools-actions"><button @click="builtInPreset('web')">Web · 1920 × 1080</button><button @click="builtInPreset('catalog')">{{ l('Catálogo', 'Catalog') }} · 1200 × 1200</button><button @click="importInput?.click()">{{ l('Importar JSON', 'Import JSON') }}</button><button :disabled="!selectedPreset" @click="exportPreset">{{ l('Exportar JSON', 'Export JSON') }}</button></div>
+        <input ref="importInput" type="file" accept=".json,application/json" hidden @change="importPreset" />
+        <p class="tools-hint">{{ l('La exportación conserva el texto de marca, pero excluye su imagen y ruta. Vuelve a seleccionar la imagen en el otro equipo.', 'Export keeps watermark text but excludes its image and path. Select the image again on the other computer.') }}</p>
         <label>{{ l('Ajuste guardado', 'Saved preset') }}<select v-model="selectedPreset" @change="applyPreset"><option value="">{{ l('Seleccionar…', 'Select…') }}</option><option v-for="item in presets" :key="item.id" :value="item.id">{{ item.name }}</option></select></label>
         <label>{{ l('Nombre del ajuste', 'Preset name') }}<input v-model="presetName" maxlength="60" /></label>
         <div class="tools-actions"><button :disabled="!presetName.trim()" @click="savePreset(false)">{{ l('Guardar nuevo', 'Save new') }}</button><button :disabled="!selectedPreset || !presetName.trim()" @click="savePreset(true)">{{ l('Actualizar', 'Update') }}</button><button :disabled="!selectedPreset" @click="deletePreset">{{ l('Eliminar', 'Delete') }}</button></div>
       </section>
       <section class="tools-section"><h3>{{ l('Tamaño y carpetas', 'Size and folders') }}</h3>
-        <label>{{ l('Redimensionado', 'Resize') }}<select v-model="settings.resize.mode"><option value="none">{{ l('Tamaño original', 'Original size') }}</option><option value="width">{{ l('Por ancho', 'By width') }}</option><option value="height">{{ l('Por alto', 'By height') }}</option><option value="percentage">{{ l('Por porcentaje', 'By percentage') }}</option><option value="bounds">{{ l('Dimensiones máximas', 'Maximum dimensions') }}</option></select></label>
-        <div class="tools-grid"><label v-if="['width','bounds'].includes(settings.resize.mode)">{{ l('Ancho (px)', 'Width (px)') }}<input v-model.number="settings.resize.width" type="number" min="1" max="30000" /></label><label v-if="['height','bounds'].includes(settings.resize.mode)">{{ l('Alto (px)', 'Height (px)') }}<input v-model.number="settings.resize.height" type="number" min="1" max="30000" /></label><label v-if="settings.resize.mode === 'percentage'">{{ l('Porcentaje', 'Percentage') }}<input v-model.number="settings.resize.percentage" type="number" min="1" max="400" /></label></div>
+        <label>{{ l('Redimensionado', 'Resize') }}<select v-model="settings.resize.mode"><option value="none">{{ l('Tamaño original', 'Original size') }}</option><option value="width">{{ l('Por ancho', 'By width') }}</option><option value="height">{{ l('Por alto', 'By height') }}</option><option value="percentage">{{ l('Por porcentaje', 'By percentage') }}</option><option value="cover">{{ l('Recortar para llenar', 'Crop to fill') }}</option><option value="contain">{{ l('Rellenar lienzo', 'Pad to size') }}</option><option value="bounds">{{ l('Dimensiones máximas', 'Maximum dimensions') }}</option></select></label>
+        <div class="tools-grid"><label v-if="['width','bounds','cover','contain'].includes(settings.resize.mode)">{{ l('Ancho (px)', 'Width (px)') }}<input v-model.number="settings.resize.width" type="number" min="1" max="30000" /></label><label v-if="['height','bounds','cover','contain'].includes(settings.resize.mode)">{{ l('Alto (px)', 'Height (px)') }}<input v-model.number="settings.resize.height" type="number" min="1" max="30000" /></label><label v-if="settings.resize.mode === 'percentage'">{{ l('Porcentaje', 'Percentage') }}<input v-model.number="settings.resize.percentage" type="number" min="1" max="400" /></label></div>
         <label class="tools-check"><input v-model="settings.resize.allowEnlargement" type="checkbox" />{{ l('Permitir ampliar imágenes pequeñas', 'Allow enlarging small images') }}</label>
         <label class="tools-check"><input v-model="settings.preserveFolders" type="checkbox" />{{ l('Conservar subcarpetas de origen', 'Preserve source subfolders') }}</label>
+        <p v-if="settings.resize.mode === 'cover'" class="tools-hint">{{ l('Recorta desde el centro. Sin ampliación, un original pequeño puede producir dimensiones menores.', 'Crops from the center. Without enlargement, small inputs may produce smaller dimensions.') }}</p>
+        <label>{{ l('Fondo de lienzo y JPEG', 'Canvas and JPEG background') }}<input v-model="settings.adjustments.background" type="color" /></label>
+        <label>{{ l('Giro adicional', 'Additional rotation') }}<select v-model.number="settings.adjustments.rotation"><option :value="0">0°</option><option :value="90">90°</option><option :value="180">180°</option><option :value="270">270°</option></select></label>
+        <label class="tools-check"><input v-model="settings.adjustments.flop" type="checkbox" />{{ l('Espejo horizontal', 'Horizontal mirror') }}</label>
+        <label class="tools-check"><input v-model="settings.adjustments.flip" type="checkbox" />{{ l('Voltear verticalmente', 'Vertical flip') }}</label>
+        <label class="tools-check"><input v-model="settings.adjustments.grayscale" type="checkbox" />{{ l('Escala de grises', 'Grayscale') }}</label>
+        <label>{{ l('Metadatos de salida', 'Output metadata') }}<select v-model="settings.adjustments.metadata"><option value="strip">{{ l('Eliminar metadatos', 'Remove metadata') }}</option><option value="color">{{ l('Incluir perfil sRGB, sin EXIF', 'Embed sRGB profile, no EXIF') }}</option></select></label>
+        <p class="tools-hint">{{ l('No conserva GPS, EXIF ni copyright del original. El perfil sRGB no restaura esos datos.', 'Does not retain source GPS, EXIF or copyright. The sRGB profile does not restore that data.') }}</p>
+        <label v-if="format === 'jpeg'" class="tools-check"><input v-model="settings.adjustments.jpegProgressive" type="checkbox" />{{ l('JPEG progresivo', 'Progressive JPEG') }}</label>
+        <label v-if="format === 'webp'" class="tools-check"><input v-model="settings.adjustments.webpLossless" type="checkbox" />{{ l('WebP sin pérdida (incompatible con peso objetivo)', 'Lossless WebP (incompatible with target size)') }}</label>
       </section>
       <section class="tools-section"><h3>{{ l('Renombrado', 'Batch naming') }}</h3>
         <label class="tools-check"><input v-model="settings.naming.enabled" type="checkbox" />{{ l('Renombrar resultados', 'Rename results') }}</label>
@@ -188,8 +235,8 @@ async function showPreview() {
       <p v-if="watchState.active || watchState.completed || watchState.failed" role="status" class="tools-hint">{{ watchState.processing ? l('Convirtiendo…', 'Converting…') : watchState.active ? l('Esperando imágenes', 'Waiting for images') : l('Vigilancia detenida', 'Watching stopped') }} · {{ watchState.completed }} {{ l('correctas', 'completed') }} · {{ watchState.failed }} {{ l('fallidas', 'failed') }}</p>
       <p v-if="watchState.message" role="alert" class="tools-error">{{ toolMessage(new Error(watchState.message), language) }}</p>
     </section>
-    <footer class="tools-preview"><button :disabled="!firstFile || busy || previewing || watchState.active || watchState.processing" @click="showPreview">{{ previewing ? l('Generando vista previa…', 'Generating preview…') : l('Previsualizar primera imagen', 'Preview first image') }}</button><p class="tools-hint">{{ l('No modifica el original ni guarda resultados. Las marcas no admiten GIF animados.', 'Does not modify the original or save output. Watermarks do not support animated GIFs.') }}</p>
-      <figure v-if="preview"><img :src="preview.dataUrl" :alt="l('Vista previa de conversión', 'Conversion preview')" /><figcaption>{{ preview.filename }} · {{ preview.width }} × {{ preview.height }} px</figcaption></figure>
+    <footer class="tools-preview"><label v-if="previewFiles?.length">{{ l('Imagen para vista previa', 'Preview image') }}<select v-model="previewSelection" :disabled="previewing"><option value="">{{ l('Primera imagen', 'First image') }}</option><option v-for="file in previewFiles" :key="file.path" :value="file.path">{{ file.name }}</option></select></label><button :disabled="!firstFile || busy || previewing || watchState.active || watchState.processing" @click="showPreview">{{ previewing ? l('Generando vista previa…', 'Generating preview…') : l('Comparar original y resultado', 'Compare original and result') }}</button><p class="tools-hint">{{ l('No modifica el original ni guarda resultados. Las marcas no admiten GIF animados.', 'Does not modify the original or save output. Watermarks do not support animated GIFs.') }}</p>
+      <figure v-if="preview"><div class="preview-comparison"><div><span>{{ l('Original', 'Original') }}</span><img :src="preview.originalDataUrl" :alt="l('Original', 'Original')" /></div><div><span>{{ l('Resultado', 'Result') }}</span><img :src="preview.dataUrl" :alt="l('Vista previa de conversión', 'Conversion preview')" /></div></div><figcaption>{{ preview.filename }} · {{ preview.width }} × {{ preview.height }} px · {{ (preview.outputBytes / 1024).toFixed(1) }} KB</figcaption></figure>
     </footer>
   </dialog>
 </template>
@@ -210,5 +257,8 @@ button { border: 1px solid #c8d8cc; background: #edf5f0; border-radius: 6px; pad
 .tools-actions { display: flex; flex-wrap: wrap; gap: 8px; }.tools-hint { font-size: 11px; color: #67796e; overflow-wrap: anywhere; line-height: 1.6; }
 .tools-error { color: #983d20; background: #fff0e8; padding: 12px 26px; font-size: 12px; }
 .tools-watch, .tools-background { padding: 22px 26px; border-bottom: 1px solid var(--line); }
+.preview-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.preview-comparison > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); background: repeating-conic-gradient(#edf0ed 0% 25%, #fff 0% 50%) 0 / 16px 16px; }
+.preview-comparison span { background: white; padding: 3px 8px; font-size: 12px; }
 .tools-preview { padding: 22px 26px; } figure { margin: 18px 0 0; text-align: center; } figure img { max-width: 100%; max-height: 360px; object-fit: contain; } figcaption { font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
 </style>

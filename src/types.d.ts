@@ -5,6 +5,7 @@ export {}
 declare global {
   interface Window {
     imageDesk: {
+      openSponsors: () => Promise<void>
       getBackgroundPreferences: () => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>
       setBackgroundPreferences: (value: { closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }) => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>
       watchStatus: () => Promise<WatchStatus>
@@ -16,7 +17,7 @@ declare global {
       savePreset: (value: { id?: string; name: string; settings: ConversionSettings }) => Promise<SavedSettings>
       deletePreset: (id: string) => Promise<SavedSettings>
       selectWatermark: () => Promise<string | null>
-      preview: (value: ConversionSettings & { files: string[]; outputDir: string }) => Promise<{ filename: string; width: number; height: number; animated: boolean; dataUrl: string }>
+      preview: (value: ConversionSettings & { files: string[]; sequence?: number[]; outputDir: string }) => Promise<{ filename: string; width: number; height: number; animated: boolean; dataUrl: string; originalDataUrl: string; outputBytes: number }>
       getPreferences: () => Promise<{ format: 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff' | 'gif'; quality: number; outputDir: string } | null>
       setPreferences: (value: { format: string; quality: number; outputDir: string }) => Promise<void>
       cancelInspection: () => Promise<void>

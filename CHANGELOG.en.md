@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased · Post-2.0 development
+
+- Add voluntary GitHub Sponsors support on the main screen without unlocking features.
+- Compare original/result thumbnails, select a batch image and show actual encoded file size.
+- Add centered cropping, canvas padding, JPEG background, rotation, mirrors and grayscale.
+- Offer sRGB embedding without EXIF, progressive JPEG and lossless WebP.
+- Add Web/Catalog examples and portable JSON presets without watermark paths.
+- Preserve older settings and document research into further improvements.
+
+These changes are outside the 2.0.0 tag and submitted Store package. [Status and limitations](docs/NEXT_VERSION.md).
+
 ## [2.0.0] - In preparation, unpublished
 
 - Show flags inside the language dropdown options with keyboard navigation.

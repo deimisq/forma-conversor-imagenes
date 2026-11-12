@@ -46,7 +46,7 @@ function isInside(root: string, file: string) {
 }
 
 function processingPixels(metadata: Metadata, settings: ConversionSettings) {
-  const swapped = [5, 6, 7, 8].includes(metadata.orientation ?? 1)
+  const swapped = [5, 6, 7, 8].includes(metadata.orientation ?? 1) !== [90, 270].includes(settings.adjustments.rotation)
   const sourceWidth = metadata.width ?? 0
   const sourceHeight = metadata.pageHeight ?? metadata.height ?? 0
   const width = swapped ? sourceHeight : sourceWidth
@@ -56,7 +56,7 @@ function processingPixels(metadata: Metadata, settings: ConversionSettings) {
   let scale = r.mode === 'width' ? r.width / width : r.mode === 'height' ? r.height / height
     : r.mode === 'bounds' ? Math.min(r.width / width, r.height / height) : r.mode === 'percentage' ? r.percentage / 100 : 1
   if (!r.allowEnlargement) scale = Math.min(1, scale)
-  return Math.max((metadata.width ?? 0) * (metadata.height ?? 0), Math.max(1, Math.round(width * scale)) * Math.max(1, Math.round(height * scale)))
+  return Math.max((metadata.width ?? 0) * (metadata.height ?? 0), ['cover', 'contain'].includes(r.mode) ? r.width * r.height : Math.max(1, Math.round(width * scale)) * Math.max(1, Math.round(height * scale)))
 }
 
 export function destinationDirectory(outputDir: string, input: string, sourceRoot: string, preserveFolders: boolean) {
@@ -68,7 +68,13 @@ export function destinationDirectory(outputDir: string, input: string, sourceRoo
 }
 
 export async function createEncoder(input: string, settings: ConversionSettings) {
-  let image = sharp(input, { animated: settings.format === 'gif' }).rotate()
+  settings = validateSettings(settings)
+  const adjustments = settings.adjustments
+  let image = sharp(input, { animated: settings.format === 'gif' }).autoOrient()
+  if (adjustments.rotation) image = image.rotate(adjustments.rotation)
+  if (adjustments.flip) image = image.flip()
+  if (adjustments.flop) image = image.flop()
+  if (adjustments.grayscale) image = image.grayscale()
   try {
     if (settings.watermark.mode !== 'none' && settings.watermark.opacity > 0) {
       const metadata = await image.metadata()
@@ -81,7 +87,7 @@ export async function createEncoder(input: string, settings: ConversionSettings)
       let height: number | undefined
       if (resize.mode === 'percentage') {
         const metadata = await image.metadata()
-        const swapped = [5, 6, 7, 8].includes(metadata.orientation ?? 1)
+        const swapped = [5, 6, 7, 8].includes(metadata.orientation ?? 1) !== [90, 270].includes(adjustments.rotation)
         const inputWidth = metadata.width
         const inputHeight = metadata.pageHeight ?? metadata.height
         if (!inputWidth || !inputHeight) throw new Error('No se pudieron leer las dimensiones de la imagen.')
@@ -91,11 +97,12 @@ export async function createEncoder(input: string, settings: ConversionSettings)
         if (resize.mode !== 'height') width = resize.width
         if (resize.mode !== 'width') height = resize.height
       }
-      image = image.resize({ width, height, fit: 'inside', withoutEnlargement: !resize.allowEnlargement })
+      image = image.resize({ width, height, fit: resize.mode === 'cover' ? 'cover' : resize.mode === 'contain' ? 'contain' : 'inside', background: adjustments.background, withoutEnlargement: !resize.allowEnlargement })
     }
     image = await applyWatermark(image, settings.watermark)
-    if (settings.format === 'jpeg') image = image.flatten({ background: '#ffffff' })
-    return image.toFormat(settings.format, settings.format === 'png' || settings.format === 'tiff' ? {} : { quality: settings.quality })
+    if (settings.format === 'jpeg') image = image.flatten({ background: adjustments.background })
+    if (adjustments.metadata === 'color') image = image.withIccProfile('srgb')
+    return image.toFormat(settings.format, settings.format === 'jpeg' ? { quality: settings.quality, progressive: adjustments.jpegProgressive } : settings.format === 'webp' ? { quality: settings.quality, lossless: adjustments.webpLossless } : settings.format === 'png' || settings.format === 'tiff' ? {} : { quality: settings.quality })
   } catch (error) {
     image.destroy()
     throw error
@@ -141,7 +148,8 @@ export async function createPreview(input: string, settings: ConversionSettings,
   encoder.destroy()
   const metadata = await sharp(buffer).metadata()
   const thumbnail = await sharp(buffer).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
-  return { filename, width: metadata.width ?? 0, height: metadata.pageHeight ?? metadata.height ?? 0, animated: (metadata.pages ?? 1) > 1, dataUrl: `data:image/png;base64,${thumbnail.toString('base64')}` }
+  const original = await sharp(input).autoOrient().resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+  return { filename, outputBytes: buffer.length, originalDataUrl: `data:image/png;base64,${original.toString('base64')}`, width: metadata.width ?? 0, height: metadata.pageHeight ?? metadata.height ?? 0, animated: (metadata.pages ?? 1) > 1, dataUrl: `data:image/png;base64,${thumbnail.toString('base64')}` }
 }
 
 // Bounded search: maximize quality within the requested byte limit, then optionally
@@ -170,7 +178,7 @@ export async function encodeTarget(input: string, settings: ConversionSettings):
     const width = Math.max(1, Math.floor((result.width || 1) * .75))
     const height = Math.max(1, Math.floor((result.height || 1) * .75))
     if (width === 1 && height === 1 && stage > 0) break
-    resize = { ...resize, mode: 'bounds', width, height, allowEnlargement: false }
+    resize = { ...resize, mode: options.resize.mode === 'cover' || options.resize.mode === 'contain' ? options.resize.mode : 'bounds', width, height, allowEnlargement: false }
   }
   throw new Error('No se pudo alcanzar el peso objetivo. Permite reducir dimensiones, baja la calidad mínima o aumenta el límite.')
 }

@@ -18,6 +18,9 @@ await fs.writeFile(path.join(app.getPath('userData'), 'preferences.json'), JSON.
 await fs.writeFile(path.join(app.getPath('userData'), 'release-notice.json'), JSON.stringify({ version: '1.3.0' }))
 const releaseNotices = []
 const originalMessageBox = dialog.showMessageBox
+const originalOpenExternal = shell.openExternal
+const externalLinks = []
+shell.openExternal = async url => { externalLinks.push(url) }
 const originalNotificationShow = Notification.prototype.show
 const notices = []
 Notification.prototype.show = function () { notices.push({ title: this.title, body: this.body }) }
@@ -55,6 +58,9 @@ try {
   stage = 'initializing desktop API'
   const evaluate = (code) => testWindow.webContents.executeJavaScript(code)
   assert.equal(await evaluate('typeof window.imageDesk'), 'object', 'Desktop preload must expose its API')
+  await evaluate('document.querySelector(".sponsor-button").click()')
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(externalLinks[0], 'https://github.com/sponsors/deimisq', 'Sponsor button opens only the configured GitHub Sponsors page')
   // Wait for the asynchronous mounted hook to finish loading preferences.
   await evaluate(`new Promise((resolve, reject) => {
     const start = Date.now();
@@ -241,14 +247,40 @@ try {
   await evaluate('document.querySelector(".tools-open").click()')
   await pollUi('document.querySelector(".tools-dialog")?.open === true')
   assert.ok((await evaluate('document.querySelector(".tools-dialog").textContent')).includes('Carpeta vigilada'))
-  await evaluate('(() => { const input = document.querySelector(".tools-section input"); input.value = "UI preset"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
-  await evaluate('document.querySelector(".tools-actions button").click()')
+  await evaluate('(() => { const input = document.querySelector(".tools-section input[maxlength]"); input.value = "UI preset"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
+  await evaluate('Array.from(document.querySelectorAll(".tools-actions button")).find(button => button.textContent === "Guardar nuevo").click()')
   await pollUi('Array.from(document.querySelectorAll(".tools-section select option")).some(option => option.textContent === "UI preset")')
+  stage = 'importing and exporting portable presets'
+  const importedPreset = { version: 1, name: 'Portable fixture', settings: { ...custom, watermark: { ...custom.watermark, mode: 'image', imagePath: inputs[0] } } }
+  await evaluate('(() => { const transfer = new DataTransfer(); transfer.items.add(new File([' + JSON.stringify(JSON.stringify(importedPreset)) + '], "preset.json", { type: "application/json" })); const input = document.querySelector(".tools-section input[type=file]"); input.files = transfer.files; input.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await pollUi('Array.from(document.querySelectorAll(".tools-section select option")).some(option => option.textContent === "Portable fixture")')
+  const exportedFile = path.join(directory, 'exported-preset.json')
+  const exported = new Promise((resolve, reject) => {
+    testWindow.webContents.session.once('will-download', (_event, item) => {
+      item.setSavePath(exportedFile)
+      item.once('done', (_doneEvent, state) => state === 'completed' ? resolve() : reject(new Error('Preset export: ' + state)))
+    })
+  })
+  await evaluate('Array.from(document.querySelectorAll(".tools-actions button")).find(button => button.textContent === "Exportar JSON").click()')
+  await exported
+  const portable = JSON.parse(await fs.readFile(exportedFile, 'utf8'))
+  assert.equal(portable.settings.watermark.imagePath, '')
+  assert.equal(portable.settings.watermark.mode, 'none')
+  assert.ok(!JSON.stringify(portable).includes(inputs[0]), 'Export must not contain private watermark paths')
+  await evaluate('(() => { const select = document.querySelector(".tools-section select"); select.value = Array.from(select.options).find(option => option.textContent === "UI preset").value; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  stage = 'validating output controls through UI'
   await evaluate('(() => { const select = document.querySelectorAll(".tools-section")[1].querySelector("select"); select.value = "width"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
   await pollUi('document.querySelectorAll(".tools-section")[1].querySelector("input[type=number]") !== null')
   await evaluate('(() => { const input = document.querySelectorAll(".tools-section")[1].querySelector("input[type=number]"); input.value = "2"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
   await evaluate('document.querySelector(".tools-preview > button").click()')
   await pollUi('document.querySelector(".tools-preview figcaption")?.textContent.includes("2 × 2")')
+  assert.equal(await evaluate('document.querySelectorAll(".preview-comparison img").length'), 2)
+  assert.match(await evaluate('document.querySelector(".tools-preview figcaption").textContent'), /KB/)
+  await evaluate('(() => { const select = document.querySelector(".tools-section select"); select.value = Array.from(select.options).find(option => option.textContent === "Desktop V2").value; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await evaluate('(() => { const select = document.querySelector(".tools-preview select"); select.value = select.options[select.options.length - 1].value; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await evaluate('new Promise(resolve => setTimeout(resolve, 0))')
+  await evaluate('document.querySelector(".tools-preview > button").click()')
+  await pollUi('document.querySelector(".tools-preview figcaption")?.textContent.includes("008")')
   await evaluate('(async () => { document.querySelector(".language-trigger").click(); await new Promise(resolve => setTimeout(resolve, 0)); document.querySelector("[data-language=en]").click(); })()')
   await pollUi('document.querySelector(".tools-heading h2")?.textContent === "Advanced tools"')
   assert.ok((await evaluate('document.querySelector(".tools-dialog").textContent')).includes('Watched folder'))
@@ -287,6 +319,7 @@ try {
   await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
   if (process.env.FORMA_SCREENSHOT) await fs.writeFile(process.env.FORMA_SCREENSHOT, (await testWindow.webContents.capturePage()).toPNG())
   await evaluate('document.querySelector(".tools-dialog").close()')
+  if (process.env.FORMA_SCREENSHOT) await fs.writeFile(process.env.FORMA_SCREENSHOT.replace('.png', '-main.png'), (await testWindow.webContents.capturePage()).toPNG())
   const watchedSource = path.join(directory, 'watched-input')
   const watchedOutput = path.join(directory, 'watched-output')
   await fs.mkdir(watchedSource)
@@ -371,6 +404,7 @@ try {
   process.exitCode = 1
 } finally {
   dialog.showMessageBox = originalMessageBox
+  shell.openExternal = originalOpenExternal
   Notification.prototype.show = originalNotificationShow
   Tray.prototype.setContextMenu = originalTrayMenu
   clearTimeout(timer)

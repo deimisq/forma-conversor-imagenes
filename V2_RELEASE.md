@@ -1,8 +1,8 @@
 # Forma 2.0 · Meta y criterios de entrega
 
-## Estado actual � 12 de noviembre de 2026
+## Estado actual · 12 de noviembre de 2026
 
-La 2.0 est� en main y etiquetada v2.0.0. El workflow del tag crea un borrador y omite R2. La ejecuci�n de prueba 43252700285 pas� ES/EN con los cambios de marcas, bandeja, notificaciones y banderas del selector, incluyendo escritorio y verificaci�n del contenido de paquetes. La compilaci�n del tag 43254721865 termin� correctamente; comprobar los paquetes adjuntos al borrador antes de utilizarlos. Partner Center, instalaci�n real y certificaci�n no se han verificado. Los p�rrafos siguientes conservan el historial de las comprobaciones; este estado actual prevalece sobre los pendientes hist�ricos de revalidaci�n ya resueltos en CI.
+Según informa el propietario, Forma 2.0 ya fue enviada a Microsoft Store y está pendiente de aprobación. Este estado procede de su comunicación; no se ha consultado Partner Center. La 2.0 está en main, con tag v2.0.0. Su compilación 43254721865 terminó correctamente y genera un release borrador sin R2. La prueba 43252700285 pasó en ES/EN. El envío no acredita aprobación, publicación efectiva ni todos los escenarios de instalación y actualización; los resultados históricos siguientes se conservan con ese alcance.
 
 ## Objetivo
 
@@ -47,12 +47,13 @@ GitHub Actions [43238483621](https://github.com/deimisq/forma-conversor-imagenes
 
 - [ ] Cerrar cualquier fallo detectado durante la validación final.
 - [ ] Revisar avisos y licencias de los componentes que se distribuyen.
-- [x] Generar y verificar EXE y APPX ES/EN de prueba en CI. Revalidar los paquetes del tag antes de publicaci�n estable.
+- [x] Generar y verificar EXE y APPX ES/EN de prueba en CI. Revalidar los paquetes del tag antes de publicación estable.
 - [ ] Probar instalación limpia y actualización sobre 1.3.0 conservando idioma y preferencias.
 - [ ] Verificar el APPX instalado desde Store, incluida consulta de actualizaciones con/sin conexión.
 - [x] Sincronizar `package.json`, lockfile, metadatos de novedades, ambos changelogs y documentación en 2.0.0. La fecha incluida es de preparación y debe confirmarse al autorizar la publicación.
 - [ ] Publicar el tag y verificar GitHub Actions, paquetes y metadatos de actualización.
-- [ ] Enviar el APPX a certificación de Microsoft Store.
+- [x] Enviar el APPX a Microsoft Store: comunicado por el propietario el 12 de noviembre de 2026.
+- [ ] Recibir aprobación de Microsoft Store y confirmar la versión disponible en la ficha.
 
 No publicar un tag 2.0 ni sustituir paquetes existentes mientras falte la validación. El lanzamiento debe utilizar los canales EXE/GitHub y APPX/Store; R2 sigue siendo una copia opcional para descargas directas.
 

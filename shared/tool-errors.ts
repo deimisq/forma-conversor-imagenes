@@ -1,5 +1,7 @@
 import type { Language } from './locale'
 const english: Record<string, string> = {
+  'Los ajustes de imagen no son válidos.': 'Invalid image adjustments.',
+  'WebP sin pérdida no admite peso objetivo.': 'Lossless WebP cannot use target file size.',
   'No se pudo leer una carpeta vigilada. Revisa sus permisos y disponibilidad.': 'A watched folder could not be read. Check its permissions and availability.',
   'El peso objetivo admite JPEG, WebP y AVIF.': 'Target file size supports JPEG, WebP and AVIF.',
   'El peso objetivo admite hasta 40 megapíxeles.': 'Target file size supports images up to 40 megapixels.',

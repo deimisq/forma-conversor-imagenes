@@ -19,12 +19,16 @@ También implementados y probados en escritorio: bandeja del sistema, elección 
 
 Las marcas y vistas previas mantienen un límite de 40 megapíxeles en original y resultado. Las marcas de imagen admiten PNG/JPEG/WebP sin animación, hasta 20 MB. La vigilancia debe iniciarse manualmente y continúa al ocultar la ventana; no crea servicios ni arranque con Windows.
 
-## Antes de publicar estable
+## Estado de Store y mejoras propuestas
+
+El propietario confirma el envío de 2.0 a Microsoft Store; pendiente de aprobación. La investigación [Mejoras posteriores a 2.0](docs/PRODUCT_RESEARCH_2026-11.md) compara herramientas y propone prioridades sin comprometer versiones.
+
+## Comprobaciones pendientes
 
 - Completar instalación limpia y actualización real desde 1.3.0 conservando idioma y preferencias.
 - Validar el APPX instalado desde Store con/sin actualizaciones y sin conexión; ejecutar Windows App Certification Kit.
 - Cerrar avisos, licencias y fuentes de componentes de terceros.
-- Preparar capturas finales ES/EN y completar la ficha y certificación de Store.
+- Esperar la aprobación de Store; atender observaciones de certificación y confirmar qué versión queda disponible.
 - Confirmar autorización antes de publicar el borrador o reemplazar descargas estables.
 
 El tag existente no debe recrearse ni moverse. Las pruebas automatizadas no sustituyen estas validaciones reales. La guía [STORE_RELEASE.md](STORE_RELEASE.md) contiene textos para copiar y datos que debe confirmar el propietario.

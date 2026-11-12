@@ -21,6 +21,10 @@ Free, open-source batch image conversion for Windows. Your images stay on your c
 
 ## One free app
 
+**Post-2.0 development (unpublished):** original/result comparisons with batch image selection and real encoded size, crop/pad, JPEG background, rotation/mirrors, grayscale, sRGB profile without EXIF, progressive JPEG, lossless WebP and portable JSON presets. These changes are not in the 2.0 package submitted to Store. See [implementation status](docs/NEXT_VERSION.md).
+
+Voluntarily support development through **Support Forma** in the top bar or [GitHub Sponsors](https://github.com/sponsors/deimisq). It opens your browser; donations unlock no features and Forma remains free.
+
 Watched folders show Windows notifications when converting images and a summary of the results. Closing Forma lets you quit or hide it in the system tray and remember your choice. Watching continues while hidden. Restore or quit from the tray icon; change the choice or disable notifications in **Advanced tools → System tray and notifications**.
 
 Forma has a single free edition. Future features will join this same application, without a separate Pro edition or paid feature tiers. The Spanish and English packages are variants of the same app.

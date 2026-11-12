@@ -57,6 +57,8 @@ analytics, cross-app tracking or proprietary telemetry and sends no conversion s
 
 ## Microsoft Store
 
+The voluntary support button opens GitHub Sponsors in your browser. It sends no images or local paths; GitHub manages browsing, accounts and any payments under its terms. Forma receives no banking details and does not verify donations to unlock tools. Exported JSON presets contain options and watermark text, excluding the watermark image path/file. Review the contents before sharing.
+
 APPX Store queries can be initiated from the interface and never download GitHub installers. Microsoft Store manages its downloads and installations according to Windows update settings.
 
 Microsoft may process account, download, licensing and update information under its
