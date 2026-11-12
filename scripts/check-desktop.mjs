@@ -70,12 +70,22 @@ try {
   assert.ok(releaseNotices[0].detail.includes(initialLanguage === 'en' ? 'Resize by width' : 'Redimensiona por ancho'))
   assert.equal(JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'release-notice.json'), 'utf8')).version, app.getVersion())
   assert.equal(await evaluate('window.imageDesk.getLanguage()'), initialLanguage)
+  await evaluate('document.querySelector(".language-trigger").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }))')
+  assert.equal(await evaluate('document.querySelectorAll(".language-options .language-flag").length'), 2)
+  assert.equal(await evaluate('document.activeElement.getAttribute("role")'), 'option')
+  await evaluate('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true }))')
+  assert.equal(await evaluate('document.activeElement.dataset.language'), 'en')
+  await evaluate('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))')
+  assert.equal(await evaluate('document.querySelector(".language-options")'), null)
+  assert.equal(await evaluate('document.activeElement.classList.contains("language-trigger")'), true)
   for (const language of ['en', 'es']) {
     stage = `switching to ${language}`
     await evaluate(`(async () => {
-      const select = document.querySelector('.language-select select');
-      select.value = ${JSON.stringify(language)};
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+      const select = document.querySelector('.language-trigger');
+      select.click();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (document.querySelectorAll('.language-options [role=option] .language-flag').length !== 2) throw new Error('Both language options must show flags');
+      document.querySelector('.language-options [data-language="' + ${JSON.stringify(language)} + '"]').click();
       await Promise.resolve();
       await new Promise((resolve, reject) => {
         const start = Date.now();
@@ -239,10 +249,10 @@ try {
   await evaluate('(() => { const input = document.querySelectorAll(".tools-section")[1].querySelector("input[type=number]"); input.value = "2"; input.dispatchEvent(new Event("input", { bubbles: true })); })()')
   await evaluate('document.querySelector(".tools-preview > button").click()')
   await pollUi('document.querySelector(".tools-preview figcaption")?.textContent.includes("2 × 2")')
-  await evaluate('(() => { const select = document.querySelector(".language-select select"); select.value = "en"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await evaluate('(async () => { document.querySelector(".language-trigger").click(); await new Promise(resolve => setTimeout(resolve, 0)); document.querySelector("[data-language=en]").click(); })()')
   await pollUi('document.querySelector(".tools-heading h2")?.textContent === "Advanced tools"')
   assert.ok((await evaluate('document.querySelector(".tools-dialog").textContent')).includes('Watched folder'))
-  await evaluate('(() => { const select = document.querySelector(".language-select select"); select.value = "es"; select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await evaluate('(async () => { document.querySelector(".language-trigger").click(); await new Promise(resolve => setTimeout(resolve, 0)); document.querySelector("[data-language=es]").click(); })()')
   await pollUi('document.querySelector(".tools-heading h2")?.textContent === "Herramientas avanzadas"')
 
   await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')

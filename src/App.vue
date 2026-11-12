@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t as translate, systemLanguage, isLanguage, type Language } from '../shared/locale'
-import LanguageFlag from './components/LanguageFlag.vue'
+import LanguageSelector from './components/LanguageSelector.vue'
 import AdvancedTools from './components/AdvancedTools.vue'
 import { defaultSettings, type ConversionSettings } from '../shared/advanced-settings.ts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -21,9 +21,7 @@ watch(selectedLanguage, (value) => {
   document.title = t('Forma | Conversor de Imágenes')
 }, { immediate: true })
 
-async function changeLanguage(event: Event) {
-  const select = event.target as HTMLSelectElement
-  const value = select.value
+async function changeLanguage(value: Language) {
   if (!isLanguage(value) || savingLanguage.value) return
   savingLanguage.value = true
   try {
@@ -35,7 +33,6 @@ async function changeLanguage(event: Event) {
   } catch {
     runtimeWarning.value = 'No se pudo guardar el idioma.'
   } finally {
-    select.value = selectedLanguage.value
     savingLanguage.value = false
   }
 }
@@ -340,14 +337,7 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand"><img :src="formaLogo" class="brand-mark" alt="" /><span>FORMA<span class="brand-dot">.</span></span></div>
       <div class="topbar-right">
-        <label class="language-select" :title="t('Idioma')">
-          <LanguageFlag :language="selectedLanguage" />
-          <select :value="selectedLanguage" :disabled="savingLanguage" :aria-label="t('Idioma')" @change="changeLanguage">
-            <option value="es" lang="es" aria-label="Español">ES</option>
-            <option value="en" lang="en" aria-label="English">EN</option>
-          </select>
-          <ChevronDown :size="12" aria-hidden="true" />
-        </label>
+        <LanguageSelector :value="selectedLanguage" :disabled="savingLanguage" :label="t('Idioma')" @change="changeLanguage" />
         <span class="local-badge"><ShieldCheck :size="14" /> {{ t('Procesamiento local') }}</span>
         <button class="update-action" :class="`update-${updateState.status}`" :disabled="!desktopApiAvailable || updateState.status === 'checking' || updateState.status === 'downloading' || (busy && updateState.status === 'downloaded')" :aria-label="updateActionLabel" :title="updateState.message ? t(updateState.message) : updateActionLabel" @click="runUpdateAction">
           <LoaderCircle v-if="updateState.status === 'checking' || updateState.status === 'downloading'" :size="15" class="spin" />
