@@ -10,7 +10,7 @@ Para proponer una función, describe el problema y un caso de uso. Una propuesta
 
 ## Desarrollo
 
-Necesitas Windows x64, Node.js 22.12 o posterior y npm.
+Necesitas Windows x64, Node.js 24 (usado en CI) y npm.
 
 ```powershell
 npm ci

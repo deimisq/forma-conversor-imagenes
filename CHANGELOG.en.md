@@ -2,6 +2,9 @@
 
 ## [2.0.0] - In preparation, unpublished
 
+- Show flags inside the language dropdown options with keyboard navigation.
+- Fit complete watermark text without clipping its end, preserving proportions and matching the preview.
+
 - Ask whether to quit or hide in the system tray, remember and change the choice, and keep watching while hidden.
 - Notify watched conversion starts and grouped results; allow disabling notifications and opening Forma from a notification.
 

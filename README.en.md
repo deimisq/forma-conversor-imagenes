@@ -29,7 +29,7 @@ The active goal is **Forma 2.0**, including all eight tools in the single free e
 
 > **Development status:** this README describes the working source. Changes after 1.3.0 are not published yet; check the notes for the release you download. The 2.0 tools are being validated and are not part of release 1.3.0.
 
-Local metadata prepares **2.0.0**; packages built from this source are validation candidates. Publication still requires completing the release criteria and explicit authorization.
+**2.0.0** is integrated into `main` and tagged `v2.0.0`. Its workflow creates a draft and skips R2; packages remain subject to the [release criteria](V2_RELEASE.md). This is not a stable publication or Store certification.
 
 ## Local test APPX
 
@@ -52,6 +52,9 @@ The EXE checks GitHub for updates. Microsoft Store distribution uses APPX and ch
 - Process up to three images concurrently while preserving originals.
 - Cancel pending work, retry failures and review output size and savings.
 - Keep format, quality, destination and language preferences between sessions.
+- Resize, save presets, preserve subfolders and rename with numbering.
+- Add text/image watermarks with previews and target JPEG/WebP/AVIF file sizes.
+- Watch folders, receive notifications and continue processing from the system tray.
 
 [Release notes](CHANGELOG.en.md) · [Privacy](PRIVACY.en.md) · [Support](SUPPORT.md) · [GPL v3 license](LICENSE)
 
@@ -66,7 +69,7 @@ Without a saved preference, the app uses the preferred Windows languages (Spanis
 
 ## Development and verification
 
-Windows 10 or later, x64. Development requires Node.js 22.12 or later and npm.
+Windows 10 or later, x64. Development requires Node.js 24 (used in CI) and npm.
 
 ```powershell
 npm ci
@@ -122,6 +125,8 @@ of an animation. Processing stays on your computer.
 
 ## Distribution and updates
 
+**Current exception:** the existing `v2.0.0` tag uses `EP_DRAFT=true` and skips R2. Do not recreate or move it. The draft requires collaborator access and does not replace stable downloads. [STORE_RELEASE.md](STORE_RELEASE.md) contains English and Spanish listing fields and remaining Partner Center checks.
+
 Tags matching the package version, such as `v2.0.0`, run tests and publish both
 variants through `npm run release:all` in GitHub Actions. Downloads are available in
 [GitHub Releases](https://github.com/deimisq/forma-conversor-imagenes/releases).
@@ -140,7 +145,9 @@ Exit code `0` means success; code `2` means the previous version could not be
 uninstalled correctly. The local installers are unsigned. Keep package and lockfile
 versions synchronized, update both changelogs, validate packages, then publish the tag.
 
-## Version 1.3 improvements
+## Improvements retained from 1.3
+
+In 2.0, closing offers quitting safely or hiding in the tray while work continues.
 
 Format, quality and destination persist between sessions. Folder scanning can be cancelled and reports inaccessible paths. Results show output size and savings (or growth) for the last batch; failed files can be retried separately. Open output uses the last batch destination. Closing during conversion stops queued work and waits for active files before exiting.
 

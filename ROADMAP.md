@@ -1,40 +1,42 @@
 # Hoja de ruta · Forma gratuita
 
-Forma tendrá una única edición gratuita bajo la licencia GPL v3 del proyecto. Todas las herramientas previstas para la antigua edición comercial se incorporarán a esta aplicación. Los paquetes español e inglés son variantes del mismo producto.
+Forma 2.0.0 está integrada en `main`, con tag `v2.0.0` y compilación a un release borrador. Hay una única edición gratuita GPL v3; los instaladores ES/EN son variantes del mismo producto. [Estado y criterios de entrega](V2_RELEASE.md).
 
-## Meta: Forma 2.0
+## Herramientas 2.0
 
-La meta activa es lanzar **2.0.0** cuando las ocho herramientas estén completas y validadas. Consulta [V2_RELEASE.md](V2_RELEASE.md) para los criterios, avances y bloqueos de publicación.
+| Herramienta | Implementación y comprobaciones |
+| --- | --- |
+| Redimensionado | Ancho, alto, porcentaje y límites; proporciones, EXIF y ampliación opcional probados |
+| Ajustes | Crear, aplicar, actualizar, eliminar y persistir; migración de preferencias básicas probada |
+| Subcarpetas | Raíces de origen y control del destino; probado con selecciones mixtas |
+| Renombrado | Prefijos, sufijos y numeración estable en reintentos; evita sobrescrituras |
+| Marcas de agua | Texto completo sin recortes o imagen, posiciones y opacidad; GIF animados se rechazan |
+| Vista previa | Motor compartido con conversión, sin guardar resultados; probada con marcas |
+| Peso objetivo | JPEG/WebP/AVIF; reducción opcional de dimensiones y error si no alcanza el límite |
+| Carpeta vigilada | Archivos estables, subcarpetas, recuperación de errores y cierre seguro probados |
 
-Las seis herramientas de la base comercial se integraron en el código de desarrollo. También se implementaron peso objetivo (JPEG/WebP/AVIF) y vigilancia de carpetas. Todavía no están publicadas como 2.0: faltan validaciones finales, paquetes e instalaciones reales.
+También implementados y probados en escritorio: bandeja del sistema, elección recordada de cerrar/ocultar, ajustes para cambiarla, notificaciones agrupadas de vigilancia, desactivación de avisos y selector ES/EN con banderas en la lista.
 
-| Herramienta | Código de desarrollo | Validación pendiente |
-| --- | --- | --- |
-| Redimensionado | Integrado, sin recorte y con ampliación opcional | Revisión visual y paquetes |
-| Ajustes guardados | Integrados con migración de opciones básicas | Escenarios adicionales de migración |
-| Subcarpetas | Integradas con raíces y control de rutas | Instalación real |
-| Renombrado | Integrado con numeración estable en reintentos | Escenarios adicionales de reintento |
-| Marcas de agua | Integradas, texto o imagen | GIF animados se rechazan explícitamente |
-| Vista previa | Integrada, misma conversión sin escribir archivos | Opciones expandidas y memoria |
-| Peso objetivo | Implementado para JPEG, WebP y AVIF | Imágenes grandes y validación visual |
-| Carpetas vigiladas | Implementadas, sesión manual y espera de estabilidad | Errores de permisos y cierre durante vigilancia |
+Las marcas y vistas previas mantienen un límite de 40 megapíxeles en original y resultado. Las marcas de imagen admiten PNG/JPEG/WebP sin animación, hasta 20 MB. La vigilancia debe iniciarse manualmente y continúa al ocultar la ventana; no crea servicios ni arranque con Windows.
 
-Las marcas y vistas previas mantienen límites de memoria de 40 megapíxeles. Las marcas de imagen admiten hasta 20 MB y no admiten animación. El peso objetivo permite reducir dimensiones únicamente si se autoriza en sus opciones y falla sin guardar resultados mayores al límite.
+## Antes de publicar estable
 
-## Modelo comercial descartado
+- Completar instalación limpia y actualización real desde 1.3.0 conservando idioma y preferencias.
+- Validar el APPX instalado desde Store con/sin actualizaciones y sin conexión; ejecutar Windows App Certification Kit.
+- Cerrar avisos, licencias y fuentes de componentes de terceros.
+- Preparar capturas finales ES/EN y completar la ficha y certificación de Store.
+- Confirmar autorización antes de publicar el borrador o reemplazar descargas estables.
 
-No se incorporarán compras, complementos de pago, precios, recuperación de compras, desbloqueo Pro ni permisos de funciones basados en licencias. La consulta a Microsoft Store se utiliza para actualizaciones del APPX.
+El tag existente no debe recrearse ni moverse. Las pruebas automatizadas no sustituyen estas validaciones reales. La guía [STORE_RELEASE.md](STORE_RELEASE.md) contiene textos para copiar y datos que debe confirmar el propietario.
 
-La decisión del propietario de unificar el producto reemplaza el plan anterior de mantener herramientas exclusivas en un repositorio comercial. No cambia las licencias ni obligaciones de componentes de terceros. No se han modificado, publicado ni archivado repositorios remotos durante esta revisión.
+## Modelo y distribución
 
-## Distribución
+No hay compras, suscripciones, complementos de pago, desbloqueo Pro ni permisos basados en licencias comerciales. Las mejoras futuras pertenecen a esta misma app gratuita. La unificación no elimina las obligaciones de componentes de terceros.
 
-- EXE/NSIS desde GitHub Releases, con actualizaciones desde GitHub.
-- APPX en Microsoft Store, con actualizaciones desde la tienda.
-- R2 opcional como copia de descargas directas.
-
-Consulta [STORE_RELEASE.md](STORE_RELEASE.md) para las comprobaciones y el proceso de publicación. No hay una fecha ni versión comprometida para las funciones pendientes.
+- EXE/NSIS desde GitHub, actualizado desde GitHub.
+- APPX desde Microsoft Store, actualizado por Store.
+- R2 opcional como copia de descargas directas; el tag 2.0.0 lo omite mientras está en borrador.
 
 ## English
 
-Forma has one free GPL v3 edition. The development source now integrates resizing, presets, folder preservation, batch naming, watermarks and previews, and implements target-size compression and watched folders. These are not yet published; Forma 2.0 remains gated by validation in V2_RELEASE.md. Purchases, paid add-ons and Pro unlocking are dropped. Integration must preserve both languages, preferences, safe conversion, and separate GitHub EXE / Store APPX update channels.
+Forma 2.0.0 is integrated into main and tagged v2.0.0, building a draft release. All eight tools, tray behavior, watched conversion notifications and language flags are implemented. Automated tests and bilingual desktop/package checks passed, while real installation/upgrade, Store updates, certification, final screenshots and dependency licensing remain publication gates. There are no paid tiers or Pro unlocking. See the release criteria and the bilingual Store listing fields linked above.

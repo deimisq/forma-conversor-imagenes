@@ -8,7 +8,7 @@
 - Sigue SemVer; sincroniza `package.json` y `package-lock.json`, registra cambios en `CHANGELOG.md` y usa tags `vX.Y.Z`.
 - El repo público para Releases y `electron-updater` es `deimisq/forma-conversor-imagenes`; publica instaladores únicamente desde tags SemVer mediante `.github/workflows/release.yml`.
 - Distribución: EXE/NSIS desde GitHub con actualizaciones de GitHub; APPX en Microsoft Store con actualizaciones de Store. R2 aloja copias opcionales para descarga directa.
-- Comandos: `npm run dev`, `npm run typecheck`, `npm run build:app` y `npm run build` (instalador NSIS x64).
+- Comandos: `npm run dev`, `npm run typecheck`, `npm run build:app` y `npm run build` (NSIS y APPX x64).
 
 ## Preparación
 
@@ -23,6 +23,6 @@
 - [x] Verificar que README e instrucciones reflejan el producto final.
 ## Meta Forma 2.0
 
-- Completar las ocho herramientas y los criterios de V2_RELEASE.md antes de lanzar 2.0.0. No crear tags ni publicar paquetes durante la validación.
+- Completar las ocho herramientas y los criterios de V2_RELEASE.md antes de lanzar 2.0.0. El tag v2.0.0 ya fue creado por petición del propietario; compila un borrador sin R2. No recrear/mover ese tag ni publicar el borrador antes de completar las validaciones y obtener autorización.
 - Mantener los archivos de preferencias anteriores, preservar originales y separar EXE/GitHub de APPX/Store.
 - Ejecutar npm test (incluye herramientas), typecheck y pruebas de Electron de ambas variantes secuencialmente.

@@ -1,5 +1,9 @@
 # Forma 2.0 · Meta y criterios de entrega
 
+## Estado actual � 12 de noviembre de 2026
+
+La 2.0 est� en main y etiquetada v2.0.0. El workflow del tag crea un borrador y omite R2. La ejecuci�n de prueba 43252700285 pas� ES/EN con los cambios de marcas, bandeja, notificaciones y banderas del selector, incluyendo escritorio y verificaci�n del contenido de paquetes. La compilaci�n del tag 43254721865 termin� correctamente; comprobar los paquetes adjuntos al borrador antes de utilizarlos. Partner Center, instalaci�n real y certificaci�n no se han verificado. Los p�rrafos siguientes conservan el historial de las comprobaciones; este estado actual prevalece sobre los pendientes hist�ricos de revalidaci�n ya resueltos en CI.
+
 ## Objetivo
 
 Publicar **Forma 2.0.0** como única edición gratuita cuando las ocho herramientas estén completas y verificadas. El código de trabajo prepara la versión 2.0.0; la última entrega publicada referida por este plan es 1.3.0. Cambiar los metadatos locales no constituye una publicación.
@@ -20,7 +24,7 @@ La vigilancia funciona solo mientras Forma está abierta. Se inicia y detiene ma
 ## Validación de desarrollo
 
 - [x] Tipos y compilación de la aplicación española.
-- [x] 32 pruebas automatizadas: dimensiones, EXIF, seis formatos, marcas, nombres, colisiones, persistencia, peso objetivo, vigilancia, recuperación de errores de lectura y manejo de respuestas de Store.
+- [x] 33 pruebas automatizadas: dimensiones, EXIF, seis formatos, marcas, nombres, colisiones, persistencia, peso objetivo, vigilancia, recuperación de errores de lectura y manejo de respuestas de Store.
 - [x] Electron real: API, idiomas, conversión, reintentos, cancelación, cierre seguro, vista previa, subcarpetas y vigilancia.
 - [x] Verificar la variante inglesa con herramientas, ajustes por interfaz, vista previa y cambio ES/EN.
 - [x] Completar revisión visual con opciones expandidas, teclado y tamaños de ventana reducidos (760 × 600); Tab permanece en el diálogo y Escape lo cierra.
@@ -33,7 +37,7 @@ Se generó un APPX local firmado **Forma Preview 2.0.0.0**, con identidad indepe
 
 Las pruebas de consulta de Store verifican la invocación oculta de PowerShell/WinRT, límites de tiempo/salida, respuestas con/sin actualizaciones y fallos de conexión, proceso o JSON. Sustituyen el ejecutor de PowerShell por una respuesta controlada; no acreditan identidad heredada del APPX ni acceso real a los servicios de Store. Esas comprobaciones siguen pendientes en la puerta de publicación.
 
-Tras sincronizar los metadatos a 2.0.0 se repitieron regresiones, 32 pruebas automatizadas, compilación española y escritorio español: aprobados. El escritorio parte ahora de un marcador de novedades 1.3.0 y preferencias básicas antiguas, comprueba su migración y el contenido nuevo del aviso 2.0.0. Esto valida datos de migración, sin acreditar una actualización instalada mediante NSIS o Store. La variante inglesa y los paquetes finales deben volver a validarse con estos metadatos.
+Tras sincronizar los metadatos a 2.0.0 se repitieron regresiones, 33 pruebas automatizadas, compilación española y escritorio español: aprobados. El escritorio parte ahora de un marcador de novedades 1.3.0 y preferencias básicas antiguas, comprueba su migración y el contenido nuevo del aviso 2.0.0. Esto valida datos de migración, sin acreditar una actualización instalada mediante NSIS o Store. La variante inglesa y los paquetes finales deben volver a validarse con estos metadatos.
 
 Paquete local posterior: `release/local-2.0.0/forma-setup-2.0.0.appx`, identidad habitual de Forma, versión APPX 2.0.0.0 y aplicación 2.0.0. Compilación española con ES/EN; firma local verificada criptográficamente, mapa de bloques de 91 archivos válido y JavaScript/HTML empaquetados iguales a la compilación actual. Incluye licencia de Forma e inventario generado de terceros. SHA-256: `88211F9A75B091196A2C42F0BBC38C15F1DB364A1B6AAABBA190DBD455C2066B`. Entregado para instalación manual, sin instalarlo automáticamente. No acredita certificación, instalación ni actualización real de Store. La compilación inglesa 2.0.0 pasó; su escritorio y paquetes siguen pendientes de revalidar.
 
@@ -43,7 +47,7 @@ GitHub Actions [43238483621](https://github.com/deimisq/forma-conversor-imagenes
 
 - [ ] Cerrar cualquier fallo detectado durante la validación final.
 - [ ] Revisar avisos y licencias de los componentes que se distribuyen.
-- [ ] Generar y verificar los instaladores EXE y APPX de ambas variantes.
+- [x] Generar y verificar EXE y APPX ES/EN de prueba en CI. Revalidar los paquetes del tag antes de publicaci�n estable.
 - [ ] Probar instalación limpia y actualización sobre 1.3.0 conservando idioma y preferencias.
 - [ ] Verificar el APPX instalado desde Store, incluida consulta de actualizaciones con/sin conexión.
 - [x] Sincronizar `package.json`, lockfile, metadatos de novedades, ambos changelogs y documentación en 2.0.0. La fecha incluida es de preparación y debe confirmarse al autorizar la publicación.

@@ -1,6 +1,6 @@
 # Forma privacy policy
 
-**Last updated: October 28, 2026 · Forma 1.2.0** · [Español](PRIVACY.md)
+**Last updated: November 12, 2026 · Forma 2.0.0** · [Español](PRIVACY.md)
 
 Forma is a Windows desktop app for local batch image conversion.
 
@@ -30,6 +30,12 @@ Previews are generated in memory without saving output. Folder watching reads se
 
 Change settings in the app or remove their files while Forma is closed to reset them. Without a saved language, Forma follows Windows languages and falls back to English. Uninstallation may retain local settings for reinstalls.
 
+## Tray, notifications and release notes
+
+The closing choice and notification preference are saved in `preferences.json`. Hiding keeps Forma and watching running; it installs no service and configures no Windows startup. Windows notifications show the source folder name when starting and counts/errors in the result summary, without image contents. Disable notices in Advanced tools → System tray and notifications, stop watching from the app or tray, and quit completely from the tray icon.
+
+The local `release-notice.json` marker stores the last opened version to avoid repeating release notes. It is not sent to servers. Watching does not resume automatically after quitting and reopening Forma.
+
 ## Network connections and updates
 
 NSIS installations check GitHub Releases on startup, every six hours while open,
@@ -41,7 +47,7 @@ An HTTPS connection exposes ordinary technical information, such as your IP addr
 request time and client metadata, to GitHub under its
 [privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
 Forma does not receive your IP address or use these requests to identify you.
-Updates are downloaded only when requested and cached locally. Installation begins
+EXE/NSIS updates are downloaded only when requested and cached locally. Installation begins
 when you choose to install and restart.
 
 Optional copies of direct-download installers may be hosted on Cloudflare R2. Microsoft Store distributes the APPX. Cloudflare receives ordinary
@@ -50,6 +56,8 @@ This does not change local image processing. Forma includes no advertising, acco
 analytics, cross-app tracking or proprietary telemetry and sends no conversion statistics.
 
 ## Microsoft Store
+
+APPX Store queries can be initiated from the interface and never download GitHub installers. Microsoft Store manages its downloads and installations according to Windows update settings.
 
 Microsoft may process account, download, licensing and update information under its
 [privacy statement](https://privacy.microsoft.com/privacystatement). Forma receives

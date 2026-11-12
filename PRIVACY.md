@@ -1,6 +1,6 @@
 # Política de privacidad de Forma
 
-**Última actualización: 28 de octubre de 2026 · Forma 1.2.0**
+**Última actualización: 12 de noviembre de 2026 · Forma 2.0.0**
 
 [English privacy policy](PRIVACY.en.md)
 
@@ -26,6 +26,12 @@ Las vistas previas se generan en memoria y no guardan resultados. La vigilancia 
 
 Puedes cambiar los ajustes en la app o eliminar sus archivos con Forma cerrada para restablecerlos. Sin preferencia de idioma se usan los idiomas de Windows, con inglés como alternativa. El desinstalador puede conservar los datos locales para futuras reinstalaciones.
 
+## Bandeja, notificaciones y novedades
+
+La elección de cerrar u ocultar y la preferencia de avisos se guardan en `preferences.json`. Ocultar mantiene Forma y la vigilancia en ejecución; no instala un servicio ni configura inicio con Windows. Las notificaciones se entregan a Windows: muestran el nombre de la carpeta al comenzar y cantidades/errores en el resumen, sin contenido de imágenes. Puedes desactivarlas en Herramientas avanzadas → Bandeja y notificaciones, detener la vigilancia desde la app o bandeja y salir completamente desde el icono.
+
+El marcador local `release-notice.json` conserva la última versión abierta para no repetir novedades. No se envía a servidores. La vigilancia no se reanuda automáticamente tras salir y volver a abrir Forma.
+
 ## Conexiones de red y actualizaciones
 
 La versión distribuida mediante el instalador independiente consulta GitHub Releases para comprobar si hay una versión nueva. La comprobación se realiza al abrir la aplicación y, mientras permanece abierta, cada seis horas; también puede iniciarse manualmente desde la interfaz.
@@ -36,13 +42,15 @@ Los paquetes APPX se actualizan mediante Microsoft Store y no utilizan el actual
 
 Al consultar GitHub, la conexión puede incluir los datos técnicos habituales de una solicitud HTTPS, como la dirección IP, la hora, la versión consultada y metadatos del cliente. GitHub procesa esa conexión conforme a su [Declaración de privacidad](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement). Forma no recibe la dirección IP ni utiliza estas solicitudes para identificarte.
 
-La aplicación no descarga una actualización hasta que eliges hacerlo. Si la descargas, el instalador se guarda temporalmente en el perfil local de Windows para que puedas iniciar la actualización desde Forma. La instalación solo comienza cuando confirmas la acción de instalar y reiniciar.
+En la edición EXE/NSIS, la aplicación no descarga una actualización hasta que eliges hacerlo. Si la descargas, el instalador se guarda temporalmente en el perfil local de Windows para que puedas iniciar la actualización desde Forma. La instalación solo comienza cuando confirmas la acción de instalar y reiniciar.
 
 La app no incluye analítica, publicidad, seguimiento entre aplicaciones, cuentas de usuario ni telemetría propia. No envía datos de conversión ni estadísticas de uso.
 
 Las copias opcionales de los instaladores de descarga directa pueden alojarse en Cloudflare R2. Microsoft Store distribuye el APPX. Al solicitar una descarga, Cloudflare recibe los datos técnicos habituales de la conexión al servidor de archivos y los procesa conforme a su [política de privacidad](https://www.cloudflare.com/privacypolicy/). Esto no afecta al procesamiento local de imágenes dentro de Forma.
 
 ## Microsoft Store
+
+Las consultas APPX a Store pueden iniciarse desde la interfaz; no descargan instaladores GitHub. Microsoft Store administra sus descargas e instalaciones según la configuración de actualizaciones de Windows.
 
 Microsoft puede procesar información relacionada con tu cuenta, la descarga, la licencia y las actualizaciones de la aplicación de acuerdo con sus propias condiciones y su [Declaración de privacidad](https://privacy.microsoft.com/privacystatement). Forma no recibe tus credenciales ni los datos de pago de Microsoft Store.
 

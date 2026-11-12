@@ -2,6 +2,9 @@
 
 ## [2.0.0] - En preparación, sin publicar
 
+- Muestra banderas también en las opciones del selector de idioma, con navegación por teclado.
+- Ajusta el texto completo de las marcas de agua sin recortar su final; conserva proporciones y coincidencia con la vista previa.
+
 - Pregunta si cerrar u ocultar en la bandeja del sistema, permite recordar y cambiar la elección y mantiene la vigilancia mientras está oculta.
 - Notifica el inicio y el resultado agrupado de conversiones vigiladas; permite desactivar los avisos y abrir Forma desde una notificación.
 

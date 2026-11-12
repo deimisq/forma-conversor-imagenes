@@ -10,7 +10,7 @@ Este instalador de prueba no tiene firma de publicación; Windows puede mostrar 
 
 Prueba redimensionado, ajustes, subcarpetas, renombrado, marcas, vista previa, peso objetivo y vigilancia con imágenes de ejemplo. La vigilancia solo funciona mientras Forma está abierta. Las marcas sobre GIF animados se rechazan explícitamente.
 
-Esta compilación no es un release estable. No se ha publicado un tag, enviado a Store ni sustituido los archivos de actualización de GitHub/R2. Los instaladores EXE conservan el canal de GitHub de su variante; los APPX consultan Store. Conserva tus preferencias y resultados al probar una actualización.
+Esta compilación no es un release estable. El workflow de pruebas no crea tags, no envía a Store ni sustituye los archivos de actualización de GitHub/R2. El tag v2.0.0 se compila por separado como borrador. Los instaladores EXE conservan el canal de GitHub de su variante; los APPX consultan Store. Conserva tus preferencias y resultados al probar una actualización.
 
 ## English
 

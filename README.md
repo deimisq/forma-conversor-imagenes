@@ -29,7 +29,7 @@ La meta activa es **Forma 2.0**: ocho herramientas incluidas en la única app gr
 
 > **Estado de desarrollo:** este README describe el código de trabajo. Las mejoras posteriores a 1.3.0 aún no están publicadas; consulta las notas del release que descargues. Las herramientas de 2.0 están en validación y no forman parte del release 1.3.0.
 
-Los metadatos locales preparan **2.0.0**; los paquetes generados desde este código son candidatos de validación. La publicación sigue condicionada a los criterios de entrega y a autorización explícita.
+La **2.0.0** está integrada en `main` y tiene tag `v2.0.0`. Su workflow genera un release borrador y omite R2; los paquetes siguen sujetos a los [criterios de entrega](V2_RELEASE.md). No equivale a publicación estable ni certificación Store.
 
 ## APPX local de prueba
 
@@ -59,6 +59,9 @@ La preparación de Store y las comprobaciones pendientes están en la [guía de 
 - Procesar hasta tres imágenes en paralelo conservando los originales.
 - Cancelar la cola, reintentar fallidos y consultar el tamaño final y el ahorro.
 - Conservar formato, calidad, carpeta de destino e idioma entre sesiones.
+- Redimensionar, guardar ajustes, conservar subcarpetas y renombrar con numeración.
+- Añadir marcas de texto o imagen con vista previa y limitar el peso de JPEG/WebP/AVIF.
+- Vigilar carpetas, recibir avisos y seguir convirtiendo desde la bandeja del sistema.
 
 [Novedades](CHANGELOG.md) · [Privacidad](PRIVACY.md) · [Soporte](SUPPORT.md) · [Licencia GPL v3](LICENSE)
 
@@ -74,7 +77,9 @@ Sharp puede leer los formatos de imagen que tengan soporte en su build de libvip
 
 Los formatos de salida disponibles son JPEG, PNG, WebP, AVIF, TIFF y GIF. La calidad ajustable aplica a los formatos con pérdida; PNG y TIFF usan sus opciones predeterminadas. Convertir una animación a un formato estático conserva el primer fotograma.
 
-## Mejoras de la versión 1.3
+## Mejoras conservadas de 1.3
+
+En 2.0, al cerrar eliges entre salir (cierre seguro) u ocultar en la bandeja (continúa el trabajo).
 
 La configuración de formato, calidad y destino se conserva entre sesiones. La búsqueda de carpetas se puede cancelar e informa las rutas inaccesibles. Al finalizar se muestra el tamaño de salida y el ahorro (o aumento) del último lote; puedes reintentar solo los archivos fallidos. Abrir destino utiliza la carpeta del último lote aunque cambies la selección. Si cierras Forma durante una conversión, se detiene la cola y se espera a los archivos activos antes de salir.
 
@@ -83,7 +88,7 @@ Después de actualizar, Forma muestra una sola vez un diálogo con la versión, 
 ## Requisitos
 
 - Windows 10 o posterior, 64 bits
-- Node.js 22.12 o posterior y npm para desarrollo/compilación
+- Node.js 24 (versión usada en CI) y npm para desarrollo/compilación
 
 ## Desarrollo
 
@@ -159,6 +164,8 @@ El instalador estándar gestiona la actualización de una instalación existente
 
 ## Descargas y actualizaciones
 
+**Excepción actual:** el tag existente `v2.0.0` usa `EP_DRAFT=true` y omite R2. No recrearlo ni moverlo. El borrador requiere acceso y no sustituye la descarga estable. [STORE_RELEASE.md](STORE_RELEASE.md) incluye los datos ES/EN preparados para Partner Center.
+
 Cada tag `vX.Y.Z` ejecuta pruebas y `npm run release:all` en GitHub Actions. Publica ambos instaladores x64, ambos APPX y los metadatos `latest.yml` y `en.yml` en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). Descarga `forma-setup-X.Y.Z.exe` para la variante estándar o `forma-setup-en-X.Y.Z.exe` para la variante inglesa; el idioma inicial de la interfaz sigue las preferencias de Windows.
 
 Si está configurado Cloudflare R2, el workflow también sube una copia versionada (`forma-setup-X.Y.Z.exe`) y reemplaza `forma-setup-latest.exe`. R2 sirve como copia opcional de descarga directa; Microsoft Store recibe únicamente el APPX. Los alias `latest` son para descargas generales.
@@ -178,7 +185,7 @@ Si `R2_PUBLIC_BASE_URL` no está definida, el workflow publica normalmente GitHu
 
 Para cargar en R2 la versión que ya está publicada, configura primero las variables y secretos y ejecuta manualmente **Publicar instalador Windows** desde GitHub Actions. La ejecución manual compila el paquete actual y solo lo copia a R2; no vuelve a crear ni modificar el GitHub Release. Las versiones futuras se copiarán automáticamente al subir sus tags.
 
-La aplicación instalada mediante NSIS consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes ni datos personales. Los paquetes APPX delegan sus actualizaciones en Microsoft Store.
+La aplicación instalada mediante NSIS consulta Releases al abrirse y cada seis horas. Si hay una versión nueva, muestra un aviso; el usuario puede descargarla y elegir cuándo instalarla y reiniciar. La consulta usa los metadatos y checksums de electron-updater; no se envían imágenes; GitHub recibe los datos técnicos habituales de la conexión, según [Privacidad](PRIVACY.md). Los paquetes APPX delegan sus actualizaciones en Microsoft Store.
 
 ### Microsoft Store
 
