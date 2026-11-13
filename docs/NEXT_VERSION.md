@@ -4,6 +4,10 @@ El propietario informa que 2.0 está enviada a Store y pendiente de aprobación.
 
 ## Implementado
 
+- Continuación: entrada y vista previa JPEG XL beta mediante worker independiente; PDF con contraseña temporal y exportación de páginas PNG/JPEG con calidad y DPI. 54 pruebas automatizadas aprobadas.
+
+- [Nuevas herramientas de formatos](FORMAT_IMPLEMENTATION.md): PDF combinado/individual y páginas a PNG; ICO; exportación JXL beta; HEIC a PNG beta; páginas TIFF; WebP animado; entradas JFIF/JPE/SVGZ y BMP RGB sin compresión. Los límites y las validaciones pendientes se detallan en esa página.
+
 - Botón visible de GitHub Sponsors en la barra superior, con icono de corazón, ES/EN, foco de teclado y etiqueta accesible cuando se reduce a icono. Abre únicamente `https://github.com/sponsors/deimisq` mediante un IPC específico. No hay pagos integrados ni desbloqueo de herramientas. También se declara GitHub Sponsors en la configuración del repositorio.
 - Comparación de miniaturas original/resultado; permite elegir una imagen del lote e informa bytes realmente codificados. La numeración usa la posición del archivo elegido. Todavía no hay zoom real al 100 %, comparación por regiones ni deslizador.
 - Recorte central para llenar y relleno de lienzo; selector de fondo para lienzo/JPEG. Sin ampliación autorizada, un original pequeño puede dar un recorte menor: el comportamiento se explica en la interfaz.
@@ -19,7 +23,9 @@ Las pruebas nuevas cubren píxeles, dimensiones, EXIF, JPEG progresivo, WebP sin
 
 ## Investigación pendiente y alcance
 
-El [análisis de producto](PRODUCT_RESEARCH_2026-11.md) conserva las propuestas. No se han implementado todavía múltiples salidas por imagen, vigilancia simultánea de varias carpetas, historial/recuperación persistente, CLI/Explorador, marcas con fuentes/contornos ni zoom de regiones. Requieren diseñar persistencia, memoria y compatibilidad EXE/APPX, no solo añadir controles. JPEG XL/PDF no están disponibles en el motor instalado. No se añaden modelos IA ni servicios remotos silenciosamente.
+La [investigación específica de formatos](FORMAT_RESEARCH_2026-11.md) amplía PDF, JPEG XL, ICO, BMP, HEIC y otras opciones. Se probó que el motor local reconoce JFIF/SVGZ y carece de JXL/JP2/HEVC de salida; falló un BMP básico. Esa investigación documenta el punto de partida; el estado actual y sus límites están en [la implementación](FORMAT_IMPLEMENTATION.md).
+
+El [análisis de producto](PRODUCT_RESEARCH_2026-11.md) conserva las propuestas. No se han implementado todavía múltiples salidas por imagen, vigilancia simultánea de varias carpetas, historial/recuperación persistente, CLI/Explorador, marcas con fuentes/contornos ni zoom de regiones. Requieren diseñar persistencia, memoria y compatibilidad EXE/APPX, no solo añadir controles. JPEG XL/PDF se añaden mediante motores independientes del Sharp instalado. No se añaden modelos IA ni servicios remotos silenciosamente.
 
 ## English
 

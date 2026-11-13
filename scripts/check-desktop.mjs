@@ -142,6 +142,27 @@ try {
     inputs.push(input)
   }
   const outputDir = path.join(directory, 'results')
+  stage = 'document tools through isolated worker IPC'
+  const documentRequest = { mode: 'pdf', files: inputs, outputDir: path.join(directory, 'documents'), paper: 'A4', margin: 20, dpi: 72, first: 1, last: 1 }
+  const [pdf] = await evaluate(`window.imageDesk.convertDocuments(${JSON.stringify(documentRequest)})`)
+  assert.equal((await fs.readFile(pdf)).subarray(0, 5).toString(), '%PDF-')
+  stage = 'PDF rendering through worker IPC'
+  const pages = await evaluate(`window.imageDesk.convertDocuments(${JSON.stringify({ ...documentRequest, mode: 'pages', files: [pdf] })})`)
+  assert.equal((await sharp(pages[0]).metadata()).format, 'png')
+  stage = 'ICO encoding through worker IPC'
+  const [ico] = await evaluate(`window.imageDesk.convertDocuments(${JSON.stringify({ ...documentRequest, mode: 'ico', files: inputs.slice(0, 1) })})`)
+  assert.equal((await fs.readFile(ico)).readUInt16LE(4), 6)
+  stage = 'JPEG XL encoding through worker IPC'
+  const [jxl] = await evaluate(`window.imageDesk.convertDocuments(${JSON.stringify({ ...documentRequest, mode: 'jxl', files: inputs.slice(0, 1), lossless: true })})`)
+  assert.ok((await fs.stat(jxl)).size > 0)
+  stage = 'JPEG XL input conversion and preview through IPC'
+  const jxlSettings = { ...documentRequest, files: [jxl], format: 'png', quality: 84 }
+  const jxlResult = await evaluate(`window.imageDesk.convert(${JSON.stringify(jxlSettings)})`)
+  assert.equal(jxlResult.completed, 1)
+  const jxlPreview = await evaluate(`window.imageDesk.preview(${JSON.stringify(jxlSettings)})`)
+  assert.equal(jxlPreview.width, 4)
+  assert.equal(await evaluate('document.querySelector(".document-tools select").options.length'), 7)
+  stage = 'converting images through IPC'
   const result = await evaluate(`window.imageDesk.convert(${JSON.stringify({ files: inputs, outputDir, format: 'webp', quality: 84 })})`)
   assert.equal(result.completed, 2)
   assert.equal(result.failed, 0)

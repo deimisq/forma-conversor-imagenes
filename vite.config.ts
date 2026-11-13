@@ -26,12 +26,15 @@ export default defineConfig({
     electron({
       main: {
         vite: {
+          build: {
+            rolldownOptions: { external: [/^pdfkit(?:\/|$)/, /^pdfjs-dist(?:\/|$)/, /^@napi-rs\//, /^@jsquash\//, /^libheif-js(?:\/|$)/] },
+          },
           define: {
             __APP_LANGUAGE__: JSON.stringify(process.env.APP_LANGUAGE === 'en' ? 'en' : 'es'),
           },
         },
         // Shortcut of `build.lib.entry`.
-        entry: 'electron/main.ts',
+        entry: { main: 'electron/main.ts', 'document-worker': 'electron/document-worker.ts', 'jxl-worker': 'electron/jxl-worker.ts' },
       },
       preload: {
         // Shortcut of `build.rollupOptions.input`.

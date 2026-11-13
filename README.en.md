@@ -23,6 +23,8 @@ Free, open-source batch image conversion for Windows. Your images stay on your c
 
 **Post-2.0 development (unpublished):** original/result comparisons with batch image selection and real encoded size, crop/pad, JPEG background, rotation/mirrors, grayscale, sRGB profile without EXIF, progressive JPEG, lossless WebP and portable JSON presets. These changes are not in the 2.0 package submitted to Store. See [implementation status](docs/NEXT_VERSION.md).
 
+Technical research: [PDF, JPEG XL and other formats](docs/FORMAT_RESEARCH_2026-11.md), with original engine probes and proposed dependencies. See the [current implementation and limits](docs/FORMAT_IMPLEMENTATION.md).
+
 Voluntarily support development through **Support Forma** in the top bar or [GitHub Sponsors](https://github.com/sponsors/deimisq). It opens your browser; donations unlock no features and Forma remains free.
 
 Watched folders show Windows notifications when converting images and a summary of the results. Closing Forma lets you quit or hide it in the system tray and remember your choice. Watching continues while hidden. Restore or quit from the tray icon; change the choice or disable notifications in **Advanced tools → System tray and notifications**.
@@ -121,9 +123,11 @@ concurrently. Cancellation stops pending work while active files finish. Origina
 files are preserved. Results use `-converted`, followed by a number when needed;
 concurrent conversions cannot reuse the same output filename.
 
-Inputs: JPEG, PNG, WebP, AVIF, TIFF, GIF, BMP, SVG and HEIC/HEIF, subject to the
-codecs supported by the bundled Sharp/libvips build. Unsupported codecs or damaged
-files show an individual error. Outputs: JPEG, PNG, WebP, AVIF, TIFF and GIF.
+Image queue inputs: JPEG/JFIF/JPE, JXL (beta), PNG, WebP, AVIF, TIFF, GIF, SVG/SVGZ and
+uncompressed 24/32-bit RGB BMP. Unsupported variants and damaged files show
+individual errors. HEIC/HEIF-to-PNG is a separate beta tool. PDF, ICO and JPEG XL
+also have separate controls; see [tool limits](docs/FORMAT_IMPLEMENTATION.md).
+Image queue outputs: JPEG, PNG, WebP, AVIF, TIFF and GIF.
 PNG and TIFF use default encoder settings. Static outputs retain the first frame
 of an animation. Processing stays on your computer.
 
@@ -156,3 +160,5 @@ In 2.0, closing offers quitting safely or hiding in the tray while work continue
 Format, quality and destination persist between sessions. Folder scanning can be cancelled and reports inaccessible paths. Results show output size and savings (or growth) for the last batch; failed files can be retried separately. Open output uses the last batch destination. Closing during conversion stops queued work and waits for active files before exiting.
 
 After an update, Forma shows a one-time dialog with the installed version, release date and notes in the saved language. It works offline and does not appear on fresh installs. Microsoft Store receives only the APPX; EXE installers from GitHub or R2 are for direct installation.
+
+New PDF, ICO, JPEG XL, HEIC, TIFF and animation tools and their limits are documented in [Unreleased format tools](docs/FORMAT_IMPLEMENTATION.md). These changes have not been released.

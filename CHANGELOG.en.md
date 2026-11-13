@@ -57,3 +57,7 @@ Publication gates and remaining validation: [release criteria](V2_RELEASE.md).
 - Add regression tests for real conversions, language switching, preferences, versions and release configuration.
 
 For earlier releases, see the [Spanish changelog](CHANGELOG.md).
+
+- Adds beta JPEG XL input/preview, temporary PDF passwords and PNG/JPEG page export with DPI.
+
+- Adds local PDF/ICO/JXL/HEIC/TIFF/animated WebP tools and bounded JFIF/JPE/SVGZ/BMP inputs; [scope and limits](docs/FORMAT_IMPLEMENTATION.md).

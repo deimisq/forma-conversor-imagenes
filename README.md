@@ -23,6 +23,8 @@ Conversión de imágenes por lotes para Windows. Gratis, de código abierto y en
 
 **Desarrollo posterior a 2.0 (sin publicar):** comparación original/resultado para elegir imágenes del lote, peso real en preview, recorte/relleno, fondo JPEG, giro/espejos, escala de grises, perfil sRGB sin EXIF, JPEG progresivo, WebP sin pérdida y ajustes JSON compartibles. Estas mejoras no pertenecen al paquete 2.0 ya enviado a Store. Consulta [el estado de implementación](docs/NEXT_VERSION.md).
 
+Investigación técnica: [PDF, JPEG XL y otros formatos](docs/FORMAT_RESEARCH_2026-11.md). Las pruebas del motor original y las propuestas se complementan con el [estado de implementación y sus límites](docs/FORMAT_IMPLEMENTATION.md).
+
 Puedes apoyar voluntariamente el desarrollo con el botón **Apoyar Forma** de la barra superior o desde [GitHub Sponsors](https://github.com/sponsors/deimisq). Abre el navegador; las donaciones no desbloquean funciones y Forma sigue siendo gratuita.
 
 La carpeta vigilada muestra notificaciones de Windows al convertir imágenes y un resumen del resultado. Al cerrar Forma puedes salir u ocultarla en la bandeja junto al reloj y recordar tu elección. La vigilancia continúa mientras está oculta. Puedes restaurarla o salir desde el icono, y cambiar la elección o desactivar los avisos en **Herramientas avanzadas → Bandeja y notificaciones**.
@@ -77,7 +79,7 @@ La cola convierte hasta tres imágenes en paralelo, actualiza cada estado por se
 
 ## Formatos
 
-Sharp puede leer los formatos de imagen que tengan soporte en su build de libvips. La aplicación acepta JPEG, PNG, WebP, AVIF, TIFF, GIF, BMP, SVG y HEIC/HEIF como entradas; un codec puede faltar para ciertos archivos y el error se informa en la cola.
+La cola de imágenes admite JPEG/JFIF/JPE, JXL (beta), PNG, WebP, AVIF, TIFF, GIF, SVG/SVGZ y BMP RGB sin compresión de 24/32 bits. Los errores de variantes no compatibles se informan por archivo. HEIC/HEIF se convierte a PNG desde la herramienta beta independiente; PDF, ICO y JPEG XL tienen sus propios controles. Consulta [los límites de cada herramienta](docs/FORMAT_IMPLEMENTATION.md).
 
 Los formatos de salida disponibles son JPEG, PNG, WebP, AVIF, TIFF y GIF. La calidad ajustable aplica a los formatos con pérdida; PNG y TIFF usan sus opciones predeterminadas. Convertir una animación a un formato estático conserva el primer fotograma.
 
@@ -202,3 +204,5 @@ Al ejecutar el instalador con Forma ya instalada, NSIS usa el mismo identificado
 El proyecto sigue SemVer: incrementa MAJOR para cambios incompatibles, MINOR para funciones nuevas y PATCH para correcciones. Mantén `version` en `package.json` y `package-lock.json` sincronizados, añade una entrada a `CHANGELOG.md` y etiqueta cada entrega como `vX.Y.Z`. electron-builder usa esa versión para el nombre y carpeta del instalador.
 
 El remoto público está registrado en Git y en los metadatos de `package.json`. Para publicar una versión, sincroniza `package.json` y `package-lock.json`, actualiza `CHANGELOG.md` y sube el tag correspondiente; GitHub Actions compila y publica los artefactos usando su `GITHUB_TOKEN` de alcance limitado.
+
+Las nuevas herramientas de PDF, ICO, JPEG XL, HEIC, TIFF y animaciones se describen con sus límites en [Formatos implementados en desarrollo](docs/FORMAT_IMPLEMENTATION.md). Son cambios sin publicar.

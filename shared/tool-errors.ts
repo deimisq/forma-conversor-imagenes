@@ -1,4 +1,5 @@
 import type { Language } from './locale'
+import { documentErrors } from './document-errors.ts'
 const english: Record<string, string> = {
   'Los ajustes de imagen no son válidos.': 'Invalid image adjustments.',
   'WebP sin pérdida no admite peso objetivo.': 'Lossless WebP cannot use target file size.',
@@ -38,6 +39,7 @@ const english: Record<string, string> = {
 }
 export function toolMessage(error: unknown, language: Language): string {
   const message = error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '') : ''
+  if (Object.prototype.hasOwnProperty.call(documentErrors, message)) return documentErrors[message][language]
   if (language === 'en') return english[message] || (/^[A-Z][a-z]/.test(message) && Object.values(english).includes(message) ? message : 'The operation failed. Check the settings, files and folder permissions.')
   if ((error as { code?: string })?.code === 'ENOENT') return 'No se encontró el archivo o la carpeta.'
   return /^(La |Las |El |Los |No |Una |Un |Selecciona |Ya |Puedes |Revisa |Se |Activa )/.test(message) ? message : 'No se pudo completar la operación. Revisa las opciones, archivos y permisos.'

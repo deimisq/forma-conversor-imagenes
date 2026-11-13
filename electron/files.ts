@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-const supportedInputs = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.heic', '.heif'])
+const supportedInputs = new Set(['.jpg', '.jpeg', '.jfif', '.jpe', '.jxl', '.png', '.webp', '.avif', '.tif', '.tiff', '.gif', '.bmp', '.svg', '.svgz'])
 export { supportedInputs }
 
 export async function collectImageEntries(paths: string[], control: { cancelled?: () => boolean; onError?: (file: string, error: unknown) => void } = {}) {

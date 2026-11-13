@@ -2,6 +2,7 @@ import { t, language, defaultLanguage, isLanguage, setLanguage, systemLanguage }
 import { startFolderWatcher, type WatchStatus } from './folder-watcher.ts'
 import { toolMessage } from '../shared/tool-errors.ts'
 import { collectImageEntries, supportedInputs } from './files.ts'
+import { runDocumentWorker } from './document-runner.ts'
 import { checkStoreUpdates } from './store-updates'
 import { currentRelease } from '../shared/release'
 import { consumeReleaseNotice } from './release-notice'
@@ -322,6 +323,18 @@ handle('conversion:start', async (_event, options: ConversionOptions) => {
   }
 })
 handle('conversion:cancel', () => { cancelRequested = true })
+handle('documents:select', async (_event, kind: string) => {
+  const pdf = kind === 'pages'
+  const result = await dialog.showOpenDialog({ properties: pdf ? ['openFile'] : ['openFile', 'multiSelections'], filters: [{ name: pdf ? 'PDF' : t('Imágenes'), extensions: pdf ? ['pdf'] : kind === 'heic' ? ['heic', 'heif'] : kind === 'tiff' ? ['tif', 'tiff'] : [...supportedInputs].map(extension => extension.slice(1)) }] })
+  return result.canceled ? [] : result.filePaths
+})
+handle('documents:convert', async (_event, request: unknown) => {
+  if (conversionInProgress || previewInProgress || watcherState.active || startingWatcher) throw new Error('Ya hay una conversión en curso.')
+  conversionInProgress = true; cancelRequested = false
+  try {
+    return await runDocumentWorker(request, () => cancelRequested, (done, total) => win?.webContents.send('documents:progress', { done, total }))
+  } finally { conversionInProgress = false; if (closeAfterConversion) win?.close() }
+})
 handle('folder:open', async (_event, folder: unknown) => {
   if (typeof folder !== 'string' || !path.isAbsolute(folder) || !(await fs.stat(folder)).isDirectory()) throw new Error(t('Carpeta inválida.'))
   const error = await shell.openPath(folder)

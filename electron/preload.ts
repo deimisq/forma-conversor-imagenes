@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('imageDesk', {
+  selectDocuments: (kind: string) => ipcRenderer.invoke('documents:select', kind),
+  convertDocuments: (value: unknown) => ipcRenderer.invoke('documents:convert', value),
+  onDocumentProgress: (callback: (value: { done: number; total: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: { done: number; total: number }) => callback(value)
+    ipcRenderer.on('documents:progress', listener)
+    return () => ipcRenderer.removeListener('documents:progress', listener)
+  },
   openSponsors: () => ipcRenderer.invoke('app:sponsor'),
   getBackgroundPreferences: () => ipcRenderer.invoke('app:background-read'),
   setBackgroundPreferences: (value: unknown) => ipcRenderer.invoke('app:background-write', value),

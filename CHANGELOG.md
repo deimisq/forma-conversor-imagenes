@@ -80,3 +80,7 @@ Pendientes de publicación y validaciones: [criterios de entrega](V2_RELEASE.md)
 - Usa la misma marca SVG para el encabezado, la ventana y los recursos del instalador.
 - Muestra la versión del paquete en la aplicación.
 - Maneja sin errores la vista previa abierta fuera de Electron.
+
+- Admite entrada y vista previa JPEG XL beta, PDF con contraseña temporal y exportación de páginas PNG/JPEG con DPI.
+
+- Añade herramientas locales PDF/ICO/JXL/HEIC/TIFF/WebP animado y entradas JFIF/JPE/SVGZ/BMP acotadas; [alcance y límites](docs/FORMAT_IMPLEMENTATION.md).

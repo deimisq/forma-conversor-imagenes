@@ -2,6 +2,7 @@
 import { t as translate, systemLanguage, isLanguage, type Language } from '../shared/locale'
 import LanguageSelector from './components/LanguageSelector.vue'
 import AdvancedTools from './components/AdvancedTools.vue'
+import DocumentTools from './components/DocumentTools.vue'
 import { defaultSettings, type ConversionSettings } from '../shared/advanced-settings.ts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import formaLogo from './assets/forma-logo.svg'
@@ -385,7 +386,7 @@ onBeforeUnmount(() => {
               <button class="secondary-button" :disabled="!desktopApiAvailable" @click.stop="chooseFiles"><Plus :size="15" /> {{ t('Elegir archivos') }}</button>
               <button class="quiet-button" :disabled="!desktopApiAvailable" @click.stop="chooseFolder"><FolderOpen :size="15" /> {{ t('Añadir carpeta') }}</button>
             </div>
-            <small>JPG · PNG · WEBP · AVIF · GIF · TIFF · BMP · SVG · HEIC</small>
+            <small>JPG/JFIF · JXL · PNG · WEBP · AVIF · GIF · TIFF · BMP · SVG/SVGZ</small>
           </div>
 
           <div v-else ref="fileList" class="file-list" @scroll="updateListWindow">
@@ -434,6 +435,7 @@ onBeforeUnmount(() => {
           </div>
 
           <AdvancedTools v-model="tools" :format="format" :quality="quality" :output-directory="outputDirectory" :language="selectedLanguage" :busy="busy" :first-file="files[0]?.path" :preview-files="files" @apply="applyTools" @watching="watching = $event" />
+          <DocumentTools :language="selectedLanguage" :disabled="busy || watching || !desktopApiAvailable" @busy="busy = $event" />
           <div class="settings-spacer"></div>
           <p v-if="batchError" class="runtime-warning" role="alert">{{ batchError }}</p>
           <div v-if="busy || finished" class="progress-area">

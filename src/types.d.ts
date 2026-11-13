@@ -5,6 +5,9 @@ export {}
 declare global {
   interface Window {
     imageDesk: {
+      selectDocuments: (kind: string) => Promise<string[]>
+      convertDocuments: (value: import('../electron/documents.ts').DocumentRequest) => Promise<string[]>
+      onDocumentProgress: (callback: (value: { done: number; total: number }) => void) => () => void
       openSponsors: () => Promise<void>
       getBackgroundPreferences: () => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>
       setBackgroundPreferences: (value: { closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }) => Promise<{ closeAction: 'ask' | 'hide' | 'quit'; watchNotifications: boolean }>

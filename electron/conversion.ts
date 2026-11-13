@@ -8,6 +8,7 @@ import { validateSettings } from '../shared/advanced-settings.ts'
 import type { ConversionSettings } from '../shared/advanced-settings.ts'
 import { applyWatermark } from './watermark.ts'
 import { plannedFilename } from '../shared/naming.ts'
+import { imageInput } from './image-input.ts'
 
 // En Windows, la caché de archivos puede impedir mover un original ya procesado.
 sharp.cache({ files: 0 })
@@ -70,7 +71,7 @@ export function destinationDirectory(outputDir: string, input: string, sourceRoo
 export async function createEncoder(input: string, settings: ConversionSettings) {
   settings = validateSettings(settings)
   const adjustments = settings.adjustments
-  let image = sharp(input, { animated: settings.format === 'gif' }).autoOrient()
+  let image = sharp(await imageInput(input), { animated: settings.format === 'gif' }).autoOrient()
   if (adjustments.rotation) image = image.rotate(adjustments.rotation)
   if (adjustments.flip) image = image.flip()
   if (adjustments.flop) image = image.flop()
@@ -140,7 +141,7 @@ export async function writeNamedOutput(encoder: Readable, outputDir: string, fil
 }
 
 export async function createPreview(input: string, settings: ConversionSettings, index: number) {
-  const source = await sharp(input, { animated: settings.format === 'gif' }).metadata()
+  const source = await sharp(await imageInput(input), { animated: settings.format === 'gif' }).metadata()
   if (processingPixels(source, settings) > 40000000) throw new Error('La vista previa admite hasta 40 megapíxeles tanto en el original como en el resultado.')
   const filename = plannedFilename(input, settings, index)
   const encoder = await createEncoder(input, settings)
@@ -148,7 +149,7 @@ export async function createPreview(input: string, settings: ConversionSettings,
   encoder.destroy()
   const metadata = await sharp(buffer).metadata()
   const thumbnail = await sharp(buffer).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
-  const original = await sharp(input).autoOrient().resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+  const original = await sharp(await imageInput(input)).autoOrient().resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
   return { filename, outputBytes: buffer.length, originalDataUrl: `data:image/png;base64,${original.toString('base64')}`, width: metadata.width ?? 0, height: metadata.pageHeight ?? metadata.height ?? 0, animated: (metadata.pages ?? 1) > 1, dataUrl: `data:image/png;base64,${thumbnail.toString('base64')}` }
 }
 
@@ -157,7 +158,7 @@ export async function createPreview(input: string, settings: ConversionSettings,
 export async function encodeTarget(input: string, settings: ConversionSettings): Promise<Buffer> {
   const options = validateSettings(settings)
   if (!options.target.enabled) return (await createEncoder(input, options)).toBuffer()
-  const metadata = await sharp(input).metadata()
+  const metadata = await sharp(await imageInput(input)).metadata()
   if (processingPixels(metadata, options) > 40000000) throw new Error('El peso objetivo admite hasta 40 megapíxeles.')
   const limit = options.target.maxKB * 1024
   let resize = options.resize
