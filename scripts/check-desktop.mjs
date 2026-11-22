@@ -73,7 +73,7 @@ try {
   assert.equal(migratedSettings.preferences.quality, 87, 'Legacy conversion quality must migrate without loss')
   assert.equal(releaseNotices.length, 1, 'An upgrade must show exactly one native release notice')
   assert.ok(releaseNotices[0].message.includes(app.getVersion()))
-  assert.ok(releaseNotices[0].detail.includes(initialLanguage === 'en' ? 'Resize by width' : 'Redimensiona por ancho'))
+  assert.ok(releaseNotices[0].detail.includes(initialLanguage === 'en' ? 'New document tools' : 'Nuevas herramientas de documentos'))
   assert.equal(JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'release-notice.json'), 'utf8')).version, app.getVersion())
   assert.equal(await evaluate('window.imageDesk.getLanguage()'), initialLanguage)
   await evaluate('document.querySelector(".language-trigger").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }))')
