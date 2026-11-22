@@ -1,6 +1,6 @@
 # Forma privacy policy
 
-**Last updated: November 12, 2026 · Forma 2.0.0** · [Español](PRIVACY.md)
+**Last updated: November 22, 2026 · Forma 2.1.0** · [Español](PRIVACY.md)
 
 Forma is a Windows desktop app for local batch image conversion.
 
@@ -19,7 +19,7 @@ select, including names, paths and metadata needed to display and convert them.
 Original images are not uploaded to Forma, GitHub, Microsoft or other servers.
 Results are saved to your chosen directory, or to `Pictures/Imagenes convertidas`
 or `Pictures/Converted images` depending on the language at startup. Windows may
-display a localized name for Pictures. Forma keeps no separate copy of your images.
+display a localized name for Pictures. The PDF, ICO, HEIC, JPEG XL and TIFF tools also process files locally. A password you type to open a PDF is used only for that operation; it is not saved to disk or sent anywhere. Forma keeps no separate copy of your images.
 Originals and results remain in the locations you control until you move or delete them.
 
 ## Preferences, presets and tools

@@ -42,7 +42,9 @@ jobs:
         run: npm run release:all
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EP_DRAFT: ${{ github.ref == 'refs/tags/v2.0.0' && 'true' || 'false' }}
+          # Seguro por defecto: todo release nace como borrador. Define la variable
+          # del repositorio PUBLISH_RELEASES=true para publicar directamente.
+          EP_DRAFT: ${{ vars.PUBLISH_RELEASES == 'true' && 'false' || 'true' }}
 
       - name: Compilar instalador para carga inicial a R2
         if: github.event_name == 'workflow_dispatch'
@@ -59,7 +61,7 @@ jobs:
           }
 
       - name: Copiar instalador a Cloudflare R2
-        if: ${{ vars.R2_PUBLIC_BASE_URL != '' && github.ref != 'refs/tags/v2.0.0' }}
+        if: ${{ vars.R2_PUBLIC_BASE_URL != '' && (github.event_name == 'workflow_dispatch' || vars.PUBLISH_RELEASES == 'true') }}
         run: node scripts/upload-release-to-r2.mjs
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

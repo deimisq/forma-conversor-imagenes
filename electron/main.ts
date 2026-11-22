@@ -1,9 +1,9 @@
-import { t, language, defaultLanguage, isLanguage, setLanguage, systemLanguage } from '../shared/locale'
+import { t, language, isLanguage, setLanguage, systemLanguage } from '../shared/locale'
 import { startFolderWatcher, type WatchStatus } from './folder-watcher.ts'
 import { toolMessage } from '../shared/tool-errors.ts'
 import { collectImageEntries, supportedInputs } from './files.ts'
 import { runDocumentWorker } from './document-runner.ts'
-import { checkStoreUpdates } from './store-updates'
+import { storeManaged, updateCheckInterval, checkForUpdates, openStoreUpdates, downloadUpdate, installUpdate } from './updater'
 import { currentRelease } from '../shared/release'
 import { consumeReleaseNotice } from './release-notice'
 import { readLanguage, writeLanguage, readConversionPreferences, writeConversionPreferences } from './preferences'
@@ -17,9 +17,6 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell, Tray } 
 import fs from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
-import electronUpdater from 'electron-updater'
-
-const { autoUpdater } = electronUpdater
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -42,7 +39,9 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
 let win: BrowserWindow | null
+// Manual conversions/documents and the folder watcher cancel independently.
 let cancelRequested = false
+let watchCancelRequested = false
 let conversionInProgress = false
 let closeAfterConversion = false
 let inspectionCancelled = false
@@ -69,7 +68,7 @@ function updateTray() {
   tray.setToolTip(watcherState.active ? local('Forma · Vigilando carpeta', 'Forma · Watching folder') : 'Forma')
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: local('Abrir Forma', 'Open Forma'), click: restoreWindow },
-    { label: local('Detener vigilancia', 'Stop watching'), enabled: watcherState.active, click: () => { folderWatcher?.stop(); cancelRequested = true } },
+    { label: local('Detener vigilancia', 'Stop watching'), enabled: watcherState.active, click: () => { folderWatcher?.stop(); watchCancelRequested = true } },
     { type: 'separator' },
     { label: local('Salir de Forma', 'Quit Forma'), click: requestExit },
   ]))
@@ -87,68 +86,6 @@ function flushWatchNotice() {
   if (watchNoticeCompleted || watchNoticeFailed) notifyWatch(local('Carpeta vigilada · Resultado', 'Watched folder · Result'), local(`${watchNoticeCompleted} imágenes convertidas; ${watchNoticeFailed} errores.`, `${watchNoticeCompleted} images converted; ${watchNoticeFailed} errors.`))
   watchNoticeCompleted = 0; watchNoticeFailed = 0
 }
-const storeManaged = process.windowsStore === true
-let updateCheckInProgress = false
-const updateCheckInterval = 6 * 60 * 60 * 1000
-
-autoUpdater.autoDownload = false
-// English installers must never update to the Spanish release feed.
-if (defaultLanguage === 'en') autoUpdater.channel = 'en'
-autoUpdater.autoInstallOnAppQuit = false
-autoUpdater.allowPrerelease = false
-autoUpdater.allowDowngrade = false
-
-function sendUpdateState(state: Record<string, unknown>) {
-  for (const window of BrowserWindow.getAllWindows()) window.webContents.send('updates:state', state)
-}
-
-async function checkForUpdates() {
-  if (app.getVersion().includes('-preview.')) {
-    sendUpdateState({ status: 'not-available', message: t('Esta versión de prueba no recibe actualizaciones.') })
-    return
-  }
-  if (storeManaged) {
-    if (updateCheckInProgress) return
-    updateCheckInProgress = true
-    sendUpdateState({ status: 'checking', source: 'store' })
-    try {
-      const available = await checkStoreUpdates()
-      sendUpdateState({ status: available ? 'available' : 'not-available', source: 'store', message: available ? 'Hay actualizaciones en Microsoft Store.' : 'No hay actualizaciones disponibles en Microsoft Store.' })
-    } catch {
-      sendUpdateState({ status: 'error', source: 'store', message: 'No se pudo consultar Microsoft Store.' })
-    } finally { updateCheckInProgress = false }
-    return
-  }
-  if (!app.isPackaged || updateCheckInProgress) return
-  updateCheckInProgress = true
-  try {
-    await autoUpdater.checkForUpdates()
-  } catch (error) {
-    sendUpdateState({ status: 'error', message: error instanceof Error ? error.message : t('No se pudo consultar GitHub Releases.') })
-  } finally {
-    updateCheckInProgress = false
-  }
-}
-
-autoUpdater.on('checking-for-update', () => sendUpdateState({ status: 'checking' }))
-autoUpdater.on('update-available', (info) => {
-  sendUpdateState({ status: 'available', version: info.version })
-  if (Notification.isSupported() && BrowserWindow.getAllWindows().every((window) => !window.isFocused())) {
-    new Notification({ title: t('Actualización disponible'), body: `Forma ${info.version} — ${t('Actualización disponible')}` }).show()
-  }
-})
-autoUpdater.on('update-not-available', (info) => sendUpdateState({ status: 'not-available', version: info.version }))
-autoUpdater.on('download-progress', (progress) => sendUpdateState({
-  status: 'downloading',
-  percent: Math.round(progress.percent),
-  transferred: progress.transferred,
-  total: progress.total,
-}))
-autoUpdater.on('update-downloaded', (info) => sendUpdateState({ status: 'downloaded', version: info.version }))
-autoUpdater.on('update-cancelled', () => sendUpdateState({ status: 'available' }))
-autoUpdater.on('error', (error) => sendUpdateState({ status: 'error', message: error.message }))
-
-
 async function collectImages(paths: string[], errors: { path: string; message: string }[], roots: Record<string, string>): Promise<string[]> {
   const entries = await collectImageEntries(paths, { cancelled: () => inspectionCancelled, onError: (file, error) => errors.push({ path: file, message: toolMessage(error, language) }) })
   for (const entry of entries) roots[entry.path] = entry.sourceRoot
@@ -161,8 +98,7 @@ function sendProgress(payload: Record<string, unknown>) {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('conversion:progress', payload)
 }
 
-async function convertBatch(options: ConversionOptions) {
-  cancelRequested = false
+async function convertBatch(options: ConversionOptions, cancelled: () => boolean) {
   // Keep missing inputs in the batch so Sharp reports an error for each one.
   const files = [...new Map(options.files.map((file) => [path.resolve(file).toLowerCase(), file])).values()]
   const outputDir = options.outputDir || path.join(app.getPath('pictures'), t('Imagenes convertidas'))
@@ -174,7 +110,7 @@ async function convertBatch(options: ConversionOptions) {
 
   const worker = async () => {
     while (true) {
-      if (cancelRequested) return
+      if (cancelled()) return
       const index = nextIndex++
       if (index >= files.length) return
       const input = files[index]
@@ -201,7 +137,7 @@ async function convertBatch(options: ConversionOptions) {
   }
 
   await Promise.all(Array.from({ length: Math.min(3, files.length) }, worker))
-  totals.cancelled = cancelRequested
+  totals.cancelled = cancelled()
   sendProgress({ type: 'finish', ...totals })
   return totals
 }
@@ -243,7 +179,7 @@ handle('app:background-write', async (_event, value: unknown) => {
   if (!background.watchNotifications) { clearTimeout(watchNoticeTimer); watchNoticeTimer = undefined; watchNoticeCompleted = 0; watchNoticeFailed = 0 }
   return background
 })
-handle('tools:watch-stop', () => { folderWatcher?.stop(); cancelRequested = true; return watcherState })
+handle('tools:watch-stop', () => { folderWatcher?.stop(); watchCancelRequested = true; return watcherState })
 handle('tools:watch-start', async (_event, value: unknown) => {
   if (startingWatcher || watcherState.active || conversionInProgress || previewInProgress) throw new Error('Ya hay una conversión en curso.')
   if (!value || typeof value !== 'object') throw new Error('Opciones de vigilancia inválidas.')
@@ -251,6 +187,7 @@ handle('tools:watch-start', async (_event, value: unknown) => {
   if (typeof request.source !== 'string' || typeof request.outputDir !== 'string' || (request.includeExisting !== undefined && typeof request.includeExisting !== 'boolean')) throw new Error('Opciones de vigilancia inválidas.')
   const validated = validateConversionOptions({ ...(request.settings as object), files: [request.source], outputDir: request.outputDir })
   startingWatcher = true
+  watchCancelRequested = false
   let watchSequence = 0
   try {
     folderWatcher = await startFolderWatcher({ source: request.source, output: request.outputDir, includeExisting: request.includeExisting, extensions: supportedInputs,
@@ -259,7 +196,7 @@ handle('tools:watch-start', async (_event, value: unknown) => {
       process: async (file, source, output) => {
         conversionInProgress = true; watcherProcessing = true
         try {
-          const result = await convertBatch({ ...validated, files: [file], sequence: [watchSequence++], sourceRoots: { [file]: source }, outputDir: output })
+          const result = await convertBatch({ ...validated, files: [file], sequence: [watchSequence++], sourceRoots: { [file]: source }, outputDir: output }, () => watchCancelRequested)
           if (result.failed) throw new Error(t('No se pudo convertir.'))
         } finally { conversionInProgress = false; watcherProcessing = false; if (closeAfterConversion) win?.close() }
       },
@@ -315,8 +252,9 @@ handle('conversion:start', async (_event, options: ConversionOptions) => {
   if (conversionInProgress || previewInProgress || watcherState.active || startingWatcher) throw new Error('Ya hay una conversión en curso.')
   options = validateConversionOptions(options)
   conversionInProgress = true
+  cancelRequested = false
   try {
-    return await convertBatch(options)
+    return await convertBatch(options, () => cancelRequested)
   } finally {
     conversionInProgress = false
     if (closeAfterConversion) win?.close()
@@ -358,16 +296,9 @@ handle('app:set-language', async (_event, value: unknown) => {
   }
 })
 handle('updates:check', () => checkForUpdates())
-handle('updates:open-store', () => storeManaged ? shell.openExternal('ms-windows-store://downloadsandupdates') : undefined)
-handle('updates:download', async () => {
-  if (!app.isPackaged || storeManaged) return
-  sendUpdateState({ status: 'downloading', percent: 0 })
-  await autoUpdater.downloadUpdate()
-})
-handle('updates:install', () => {
-  if (!app.isPackaged || storeManaged || conversionInProgress) return
-  autoUpdater.quitAndInstall(false, true)
-})
+handle('updates:open-store', () => openStoreUpdates())
+handle('updates:download', () => downloadUpdate())
+handle('updates:install', () => installUpdate(() => conversionInProgress || previewInProgress || startingWatcher || watcherState.active))
 
 handle('files:cancel-inspection', () => { inspectionCancelled = true })
 handle('files:inspect', async (_event, filePaths: string[]) => {
@@ -455,6 +386,7 @@ function createWindow() {
     // Stop queued work, finish active encoders, then close without partial files.
     closeAfterConversion = true
     cancelRequested = true
+    watchCancelRequested = true
   })
   win.once('ready-to-show', () => {
     win?.maximize()

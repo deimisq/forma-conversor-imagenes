@@ -1,6 +1,6 @@
-# Desarrollo posterior a Forma 2.0
+# Forma 2.1.0 · Cambios sobre 2.0
 
-El propietario informa que 2.0 está enviada a Store y pendiente de aprobación. El tag y sus binarios no se modifican. Los cambios de esta página son desarrollo local posterior; requieren nueva versión y nueva validación antes de empaquetar o publicar.
+Estos cambios forman parte de **Forma 2.1.0**, actualización de la 2.0.0 ya enviada a Store (el tag `v2.0.0` y sus binarios no se modifican). La 2.1.0 requiere su propia validación antes de publicarse: ver [V2_RELEASE.md](../V2_RELEASE.md).
 
 ## Implementado
 
@@ -29,4 +29,4 @@ El [análisis de producto](PRODUCT_RESEARCH_2026-11.md) conserva las propuestas.
 
 ## English
 
-Unpublished development after the submitted 2.0 package: voluntary GitHub Sponsors button, image selection and original/result thumbnail comparison with encoded byte size, crop/pad and background, rotation/mirrors/grayscale, explicit metadata stripping or sRGB embedding, progressive JPEG/lossless WebP and portable JSON presets. No original ICC/EXIF preservation or full-resolution zoom is claimed. More advanced automation and integrations remain research proposals. A new version and validation are required before distribution.
+Included in Forma 2.1.0, the update to the 2.0.0 Store package: voluntary GitHub Sponsors button, image selection and original/result thumbnail comparison with encoded byte size, crop/pad and background, rotation/mirrors/grayscale, explicit metadata stripping or sRGB embedding, progressive JPEG/lossless WebP, portable JSON presets and the PDF/ICO/JPEG XL/HEIC/TIFF/animation tools. No original ICC/EXIF preservation or full-resolution zoom is claimed. More advanced automation and integrations remain research proposals. Real installation and Store validation are required before distribution.

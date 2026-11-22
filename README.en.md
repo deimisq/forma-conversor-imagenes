@@ -21,7 +21,7 @@ Free, open-source batch image conversion for Windows. Your images stay on your c
 
 ## One free app
 
-**Post-2.0 development (unpublished):** original/result comparisons with batch image selection and real encoded size, crop/pad, JPEG background, rotation/mirrors, grayscale, sRGB profile without EXIF, progressive JPEG, lossless WebP and portable JSON presets. These changes are not in the 2.0 package submitted to Store. See [implementation status](docs/NEXT_VERSION.md).
+**What's new in 2.1.0:** document and format tools (combined or per-image PDF, PDF pages to PNG/JPEG with password, ICO, HEIC to PNG beta, TIFF pages, animated WebP and JPEG XL beta), original/result comparison, crop/pad, rotation/mirrors, grayscale, sRGB profile without EXIF, progressive JPEG, lossless WebP and portable JSON presets. See the [changelog](CHANGELOG.en.md) and [implementation status](docs/NEXT_VERSION.md).
 
 Technical research: [PDF, JPEG XL and other formats](docs/FORMAT_RESEARCH_2026-11.md), with original engine probes and proposed dependencies. See the [current implementation and limits](docs/FORMAT_IMPLEMENTATION.md).
 
@@ -31,11 +31,11 @@ Watched folders show Windows notifications when converting images and a summary 
 
 Forma has a single free edition. Future features will join this same application, without a separate Pro edition or paid feature tiers. The Spanish and English packages are variants of the same app.
 
-The active goal is **Forma 2.0**, including all eight tools in the single free edition. The development source implements resizing, presets, subfolders, batch naming, watermarks, preview, target file size and watched folders. See the [release criteria](V2_RELEASE.md) and [roadmap](ROADMAP.md).
+**Forma 2.0** brought eight tools into the single free app: resizing, presets, subfolders, batch naming, watermarks, preview, target file size and watched folders. **2.1.0** adds the items above. See the [release criteria](V2_RELEASE.md) and [roadmap](ROADMAP.md).
 
-> **Development status:** this README describes the working source. Changes after 1.3.0 are not published yet; check the notes for the release you download. The 2.0 tools are being validated and are not part of release 1.3.0.
+> **Status:** `main` is version **2.1.0** (in preparation). The latest published version is the one listed in [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases); check the notes of the release you download.
 
-**2.0.0** is integrated into `main` and tagged `v2.0.0`. Its workflow creates a draft and skips R2; packages remain subject to the [release criteria](V2_RELEASE.md). This is not a stable publication or Store certification.
+**2.0.0** is tagged `v2.0.0` and was submitted to Microsoft Store. **2.1.0** is integrated into `main`; its `v2.1.0` tag creates a draft release without R2 that must be reviewed before publishing. Packages remain subject to the [release criteria](V2_RELEASE.md). No draft is a stable publication or Store certification.
 
 ## Local test APPX
 
@@ -61,6 +61,8 @@ The EXE checks GitHub for updates. Microsoft Store distribution uses APPX and ch
 - Resize, save presets, preserve subfolders and rename with numbering.
 - Add text/image watermarks with previews and target JPEG/WebP/AVIF file sizes.
 - Watch folders, receive notifications and continue processing from the system tray.
+- Combine images into PDF, export PDF pages to PNG/JPEG, create ICO and convert HEIC, TIFF and animations (some in beta; see [limits](docs/FORMAT_IMPLEMENTATION.md)).
+- Compare original and result, crop or pad the canvas, rotate, flip and convert to grayscale.
 
 [Release notes](CHANGELOG.en.md) · [Privacy](PRIVACY.en.md) · [Support](SUPPORT.md) · [GPL v3 license](LICENSE)
 
@@ -97,7 +99,7 @@ the corresponding desktop test before publishing.
 
 ## Build
 
-To test Forma 2.0 before release, open [the test build workflow](https://github.com/deimisq/forma-conversor-imagenes/actions/workflows/test-build.yml), select the latest run and download `forma-2.0.0-windows-x64-en` (or `-es`). Extract the ZIP and run the EXE. See [installation instructions](docs/INSTALL-TEST.md). These builds do not publish a stable release.
+To test a version before release, open [the validation workflow](https://github.com/deimisq/forma-conversor-imagenes/actions/workflows/test-build.yml), select the latest run and download `forma-2.1.0-windows-x64-en` (or `-es`). Extract the ZIP and run the EXE. See [installation instructions](docs/INSTALL-TEST.md). These builds do not publish a stable release; the workflow also runs on every PR and push to `main`.
 
 ```powershell
 npm run build:app
@@ -106,8 +108,8 @@ npm run build:all
 ```
 
 The first two commands compile without packaging. `build:all` sequentially builds
-both NSIS and APPX variants. Standard packages go to `release/2.0.0/`, English packages
-to `release/2.0.0/en/`. The variants share intermediate build directories; never build
+both NSIS and APPX variants. Standard packages go to `release/2.1.0/`, English packages
+to `release/2.1.0/en/`. The variants share intermediate build directories; never build
 them concurrently. Individual packaging commands are `npm run build` and `npm run build:en`.
 
 Packages retain the same application and Store identity and replace the existing
@@ -133,9 +135,9 @@ of an animation. Processing stays on your computer.
 
 ## Distribution and updates
 
-**Current exception:** the existing `v2.0.0` tag uses `EP_DRAFT=true` and skips R2. Do not recreate or move it. The draft requires collaborator access and does not replace stable downloads. [STORE_RELEASE.md](STORE_RELEASE.md) contains English and Spanish listing fields and remaining Partner Center checks.
+**Draft releases:** every tag creates a draft release and skips R2 unless the repository variable `PUBLISH_RELEASES` is `true`. Do not recreate or move the existing `v2.0.0` tag. The draft requires collaborator access and does not replace stable downloads. [STORE_RELEASE.md](STORE_RELEASE.md) contains English and Spanish listing fields and remaining Partner Center checks.
 
-Tags matching the package version, such as `v2.0.0`, run tests and publish both
+Tags matching the package version, such as `v2.1.0`, run tests and publish both
 variants through `npm run release:all` in GitHub Actions. Downloads are available in
 [GitHub Releases](https://github.com/deimisq/forma-conversor-imagenes/releases).
 NSIS uses separate update feeds: `latest.yml` for the standard installer, `en.yml`
@@ -155,10 +157,10 @@ versions synchronized, update both changelogs, validate packages, then publish t
 
 ## Improvements retained from 1.3
 
-In 2.0, closing offers quitting safely or hiding in the tray while work continues.
+Since 2.0, closing offers quitting safely or hiding in the tray while work continues.
 
 Format, quality and destination persist between sessions. Folder scanning can be cancelled and reports inaccessible paths. Results show output size and savings (or growth) for the last batch; failed files can be retried separately. Open output uses the last batch destination. Closing during conversion stops queued work and waits for active files before exiting.
 
 After an update, Forma shows a one-time dialog with the installed version, release date and notes in the saved language. It works offline and does not appear on fresh installs. Microsoft Store receives only the APPX; EXE installers from GitHub or R2 are for direct installation.
 
-New PDF, ICO, JPEG XL, HEIC, TIFF and animation tools and their limits are documented in [Unreleased format tools](docs/FORMAT_IMPLEMENTATION.md). These changes have not been released.
+The PDF, ICO, JPEG XL, HEIC, TIFF and animation tools, included in 2.1.0, and their limits are documented in [Format tools](docs/FORMAT_IMPLEMENTATION.md).

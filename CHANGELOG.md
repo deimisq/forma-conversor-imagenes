@@ -1,6 +1,8 @@
 # Registro de cambios
 
-## Sin publicar · Desarrollo posterior a 2.0
+## [2.1.0] - En preparación, sin publicar
+
+- Añade PDF combinado o individual, páginas de PDF a PNG/JPEG (con contraseña), ICO, JPEG XL beta, HEIC a PNG beta, páginas TIFF y WebP animado; acepta JFIF, JPE, JXL, SVGZ y BMP.
 
 - Añade apoyo voluntario mediante GitHub Sponsors en la pantalla principal, sin desbloqueo de funciones.
 - Compara original/resultado, selecciona la imagen del lote y muestra el peso real del archivo codificado.
@@ -8,8 +10,10 @@
 - Permite incluir perfil sRGB sin EXIF, JPEG progresivo y WebP sin pérdida.
 - Añade ejemplos Web/Catálogo e importación/exportación de ajustes JSON sin rutas de marcas.
 - Mantiene compatibilidad de ajustes anteriores y documenta la investigación de próximas herramientas.
+- Mejora la robustez interna: la vigilancia y las conversiones manuales se cancelan por separado, no se instala una actualización con trabajo en curso y las marcas de imagen solo aceptan PNG, JPEG o WebP.
+- Acelera la vista previa y el peso objetivo evitando codificaciones y decodificaciones repetidas.
 
-Estos cambios no forman parte del tag 2.0.0 ni del paquete enviado a Store. [Estado y límites](docs/NEXT_VERSION.md).
+Sustituye al paquete 2.0.0 de Store; requiere nueva validación antes de enviarlo. [Estado y límites](docs/NEXT_VERSION.md).
 
 ## [2.0.0] - En preparación, sin publicar
 

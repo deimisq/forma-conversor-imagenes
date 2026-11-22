@@ -68,10 +68,19 @@ export function destinationDirectory(outputDir: string, input: string, sourceRoo
   return directory
 }
 
-export async function createEncoder(input: string, settings: ConversionSettings) {
+function formatOptions(settings: ConversionSettings) {
+  const { format, quality, adjustments } = settings
+  if (format === 'jpeg') return { quality, progressive: adjustments.jpegProgressive }
+  if (format === 'webp') return { quality, lossless: adjustments.webpLossless }
+  if (format === 'png' || format === 'tiff') return {}
+  return { quality }
+}
+
+// `source` lets repeated encodes (target-size search) reuse an already decoded input.
+export async function createEncoder(input: string, settings: ConversionSettings, source?: string | Buffer) {
   settings = validateSettings(settings)
   const adjustments = settings.adjustments
-  let image = sharp(await imageInput(input), { animated: settings.format === 'gif' }).autoOrient()
+  let image = sharp(source ?? await imageInput(input), { animated: settings.format === 'gif' }).autoOrient()
   if (adjustments.rotation) image = image.rotate(adjustments.rotation)
   if (adjustments.flip) image = image.flip()
   if (adjustments.flop) image = image.flop()
@@ -103,7 +112,7 @@ export async function createEncoder(input: string, settings: ConversionSettings)
     image = await applyWatermark(image, settings.watermark)
     if (settings.format === 'jpeg') image = image.flatten({ background: adjustments.background })
     if (adjustments.metadata === 'color') image = image.withIccProfile('srgb')
-    return image.toFormat(settings.format, settings.format === 'jpeg' ? { quality: settings.quality, progressive: adjustments.jpegProgressive } : settings.format === 'webp' ? { quality: settings.quality, lossless: adjustments.webpLossless } : settings.format === 'png' || settings.format === 'tiff' ? {} : { quality: settings.quality })
+    return image.toFormat(settings.format, formatOptions(settings))
   } catch (error) {
     image.destroy()
     throw error
@@ -144,9 +153,7 @@ export async function createPreview(input: string, settings: ConversionSettings,
   const source = await sharp(await imageInput(input), { animated: settings.format === 'gif' }).metadata()
   if (processingPixels(source, settings) > 40000000) throw new Error('La vista previa admite hasta 40 megapíxeles tanto en el original como en el resultado.')
   const filename = plannedFilename(input, settings, index)
-  const encoder = await createEncoder(input, settings)
-  const buffer = settings.target.enabled ? await encodeTarget(input, settings) : await encoder.toBuffer()
-  encoder.destroy()
+  const buffer = settings.target.enabled ? await encodeTarget(input, settings) : await (await createEncoder(input, settings)).toBuffer()
   const metadata = await sharp(buffer).metadata()
   const thumbnail = await sharp(buffer).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
   const original = await sharp(await imageInput(input)).autoOrient().resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
@@ -158,7 +165,8 @@ export async function createPreview(input: string, settings: ConversionSettings,
 export async function encodeTarget(input: string, settings: ConversionSettings): Promise<Buffer> {
   const options = validateSettings(settings)
   if (!options.target.enabled) return (await createEncoder(input, options)).toBuffer()
-  const metadata = await sharp(await imageInput(input)).metadata()
+  const source = await imageInput(input)
+  const metadata = await sharp(source).metadata()
   if (processingPixels(metadata, options) > 40000000) throw new Error('El peso objetivo admite hasta 40 megapíxeles.')
   const limit = options.target.maxKB * 1024
   let resize = options.resize
@@ -169,7 +177,7 @@ export async function encodeTarget(input: string, settings: ConversionSettings):
     let last: Buffer | undefined
     while (low <= high) {
       const quality = Math.floor((low + high) / 2)
-      last = await (await createEncoder(input, { ...options, resize, quality })).toBuffer()
+      last = await (await createEncoder(input, { ...options, resize, quality }, source)).toBuffer()
       if (last.length <= limit) { best = last; low = quality + 1 }
       else high = quality - 1
     }

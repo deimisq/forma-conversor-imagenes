@@ -1,7 +1,7 @@
 {
   "name": "imagen-lote",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Conversor local de imágenes por lotes para Windows",
   "author": "Forma",
   "repository": {

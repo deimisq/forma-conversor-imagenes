@@ -1,8 +1,10 @@
-name: Compilar Forma 2.0 para pruebas
+name: Validar y compilar Forma
 
 on:
   push:
-    branches: ['test/forma-2.0']
+    branches: [main, 'test/**', 'feature/**']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -35,6 +37,10 @@ jobs:
           cache: npm
       - name: Instalar dependencias
         run: npm ci
+      - name: Leer versión
+        id: version
+        shell: pwsh
+        run: "'value=' + (Get-Content package.json | ConvertFrom-Json).version | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT"
       - name: Validar tipos y regresiones
         run: npm run typecheck && npm test
       - name: Compilar aplicación
@@ -54,7 +60,7 @@ jobs:
       - name: Descargar instaladores
         uses: actions/upload-artifact@v4
         with:
-          name: forma-2.0.0-windows-x64-${{ matrix.language }}
+          name: forma-${{ steps.version.outputs.value }}-windows-x64-${{ matrix.language }}
           path: |
             release/ci-${{ matrix.language }}/*.exe
             release/ci-${{ matrix.language }}/*.appx

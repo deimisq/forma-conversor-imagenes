@@ -1,5 +1,24 @@
 # Forma 2.0 · Meta y criterios de entrega
 
+## Forma 2.1.0 · Actualización sobre 2.0.0 (22 de noviembre de 2026)
+
+La 2.0.0 ya está en Microsoft Store; la **2.1.0** es su actualización y está integrada en `main`. Incluye las herramientas de documentos y formatos, las mejoras de imagen y de robustez descritas en [CHANGELOG.md](CHANGELOG.md), Electron 44.11 y dependencias actualizadas. El tag `v2.1.0` genera un release **borrador** sin R2 (todo tag lo hace salvo que la variable del repositorio `PUBLISH_RELEASES` sea `true`).
+
+Validación automática realizada: tipos, 56 pruebas, escritorio ES/EN (incluido el cierre durante vigilancia) y generación de EXE/APPX ES/EN con `scripts/verify-windows-package.ps1` (96 archivos verificados por paquete). No acreditan instalación real, actualización desde Store ni certificación.
+
+- [x] Sincronizar `package.json`, lockfile, `shared/release.ts`, ambos changelogs y documentación en 2.1.0.
+- [x] Compilar y verificar EXE y APPX ES/EN en CI.
+- [ ] Revisar el borrador `v2.1.0` y sus cuatro paquetes antes de publicarlo.
+- [ ] Probar instalación limpia y actualización real desde 2.0.0 conservando idioma, preferencias y ajustes.
+- [ ] Ejecutar Windows App Certification Kit con el APPX 2.1.0 y probar PDF, ICO, HEIC, JXL y TIFF en el paquete instalado.
+- [ ] Verificar la política de Microsoft Store sobre el botón externo **Apoyar Forma** (GitHub Sponsors) antes de enviar; si hay dudas, retirarlo del APPX.
+- [ ] Actualizar la ficha de Store (descripción, novedades, capturas) con los textos de [STORE_RELEASE.md](STORE_RELEASE.md) y enviar solo con autorización del propietario.
+- [ ] Recibir la aprobación y confirmar que la actualización llega a usuarios con 2.0.0 y con el EXE de GitHub.
+
+El EXE de GitHub sigue sin firma de código por decisión del propietario; el APPX lo firma Microsoft Store.
+
+## Forma 2.0 (histórico)
+
 ## Estado actual · 12 de noviembre de 2026
 
 Según informa el propietario, Forma 2.0 ya fue enviada a Microsoft Store y está pendiente de aprobación. Este estado procede de su comunicación; no se ha consultado Partner Center. La 2.0 está en main, con tag v2.0.0. Su compilación 43254721865 terminó correctamente y genera un release borrador sin R2. La prueba 43252700285 pasó en ES/EN. El envío no acredita aprobación, publicación efectiva ni todos los escenarios de instalación y actualización; los resultados históricos siguientes se conservan con ese alcance.
@@ -75,4 +94,4 @@ Las preferencias básicas e idioma conservan `preferences.json`. Las herramienta
 
 ## English
 
-Goal: release Forma 2.0.0 as the only free edition once all eight tools and release checks are complete. The development code implements advanced tools, target-size encoding for JPEG/WebP/AVIF, and a session-only folder watcher. Publication remains gated by bilingual desktop validation, real EXE/Store APPX installation and update checks, dependency notices, and synchronized release metadata. The published version remains 1.3.0 during development.
+Update: Forma 2.1.0 is the update to the Store 2.0.0 listing; see the 2.1.0 section above for its checklist. Original goal: release Forma 2.0.0 as the only free edition once all eight tools and release checks are complete. The development code implements advanced tools, target-size encoding for JPEG/WebP/AVIF, and a session-only folder watcher. Publication remains gated by bilingual desktop validation, real EXE/Store APPX installation and update checks, dependency notices, and synchronized release metadata. The published version remains 1.3.0 during development.

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased · Post-2.0 development
+## [2.1.0] - In preparation, unpublished
+
+- Add combined or per-image PDF, PDF pages to PNG/JPEG (with password), ICO, JPEG XL beta, HEIC to PNG beta, TIFF pages and animated WebP; accept JFIF, JPE, JXL, SVGZ and BMP inputs.
 
 - Add voluntary GitHub Sponsors support on the main screen without unlocking features.
 - Compare original/result thumbnails, select a batch image and show actual encoded file size.
@@ -9,7 +11,7 @@
 - Add Web/Catalog examples and portable JSON presets without watermark paths.
 - Preserve older settings and document research into further improvements.
 
-These changes are outside the 2.0.0 tag and submitted Store package. [Status and limitations](docs/NEXT_VERSION.md).
+This supersedes the 2.0.0 Store package and needs fresh validation before submission. [Status and limitations](docs/NEXT_VERSION.md).
 
 ## [2.0.0] - In preparation, unpublished
 

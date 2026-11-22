@@ -35,6 +35,30 @@ const english: Record<string, string> = {
   'La vista previa admite hasta 40 megapíxeles tanto en el original como en el resultado.': 'Preview supports up to 40 megapixels in both source and output.',
   'El peso objetivo debe estar entre 1 y 100 000 KB y la calidad entre 1 y 100.': 'Target size must be 1 to 100,000 KB and quality must be 1 to 100.',
   'El tamaño debe estar entre 5 y 80 %, la opacidad entre 0 y 100 % y el margen entre 0 y 500 píxeles.': 'Size must be 5 to 80%, opacity 0 to 100%, and margin 0 to 500 pixels.',
+  'Las opciones de conversión no son válidas.': 'The conversion options are not valid.',
+  'Selecciona archivos con rutas absolutas válidas.': 'Select files with valid absolute paths.',
+  'La carpeta de destino no es válida.': 'The output folder is not valid.',
+  'Las carpetas de origen no son válidas.': 'The source folders are not valid.',
+  'Una imagen está fuera de su carpeta de origen.': 'An image is outside its source folder.',
+  'La imagen está fuera de su carpeta de origen.': 'The image is outside its source folder.',
+  'La secuencia de nombres no es válida.': 'The name sequence is not valid.',
+  'No se pudieron leer las dimensiones de la imagen.': 'The image dimensions could not be read.',
+  'El destino está fuera de la carpeta seleccionada.': 'The destination is outside the selected folder.',
+  'El nombre de salida no es válido.': 'The output file name is not valid.',
+  'Opciones de vigilancia inválidas.': 'Invalid folder-watching options.',
+  'La configuración no es válida.': 'The settings are not valid.',
+  'El formato de salida no está permitido.': 'The output format is not allowed.',
+  'El redimensionado no es válido.': 'The resize settings are not valid.',
+  'El modo de redimensionado no es válido.': 'The resize mode is not valid.',
+  'La opción de ampliación no es válida.': 'The enlargement option is not valid.',
+  'La opción de subcarpetas no es válida.': 'The subfolder option is not valid.',
+  'El peso objetivo no es válido.': 'The target file size is not valid.',
+  'El renombrado no es válido.': 'The renaming settings are not valid.',
+  'Las opciones de renombrado no son válidas.': 'The renaming options are not valid.',
+  'La marca de agua no es válida.': 'The watermark settings are not valid.',
+  'El tipo o la posición de la marca de agua no son válidos.': 'The watermark type or position is not valid.',
+  'La carpeta guardada no es válida.': 'The saved folder is not valid.',
+  'El ajuste no es válido.': 'The preset is not valid.',
   'Ya hay una conversión en curso.': 'A conversion, preview or folder watcher is already running.',
 }
 export function toolMessage(error: unknown, language: Language): string {
@@ -42,5 +66,5 @@ export function toolMessage(error: unknown, language: Language): string {
   if (Object.prototype.hasOwnProperty.call(documentErrors, message)) return documentErrors[message][language]
   if (language === 'en') return english[message] || (/^[A-Z][a-z]/.test(message) && Object.values(english).includes(message) ? message : 'The operation failed. Check the settings, files and folder permissions.')
   if ((error as { code?: string })?.code === 'ENOENT') return 'No se encontró el archivo o la carpeta.'
-  return /^(La |Las |El |Los |No |Una |Un |Selecciona |Ya |Puedes |Revisa |Se |Activa )/.test(message) ? message : 'No se pudo completar la operación. Revisa las opciones, archivos y permisos.'
+  return Object.prototype.hasOwnProperty.call(english, message) || /^(La |Las |El |Los |No |Una |Un |Selecciona |Ya |Puedes |Revisa |Se |Activa )/.test(message) ? message : 'No se pudo completar la operación. Revisa las opciones, archivos y permisos.'
 }

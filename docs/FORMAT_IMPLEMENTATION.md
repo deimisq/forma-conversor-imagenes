@@ -1,6 +1,6 @@
-# Nuevos formatos: implementación posterior a 2.0
+# Nuevos formatos: implementación en 2.1
 
-Estas herramientas pertenecen al desarrollo local posterior a la versión enviada a Store. No actualizan el tag ni el paquete 2.0.0. Se accede desde **PDF y otros formatos**, debajo de Herramientas avanzadas. La selección de archivos y el destino de este panel son independientes de la cola de conversión habitual.
+Estas herramientas se incluyen en **Forma 2.1.0**, actualización de la 2.0.0 enviada a Store; no modifican el tag ni el paquete 2.0.0. Se accede desde **PDF y otros formatos**, debajo de Herramientas avanzadas. La selección de archivos y el destino de este panel son independientes de la cola de conversión.
 
 | Herramienta | Alcance implementado |
 | --- | --- |

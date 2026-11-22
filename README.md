@@ -21,7 +21,7 @@ Conversión de imágenes por lotes para Windows. Gratis, de código abierto y en
 
 ## Una única app gratuita
 
-**Desarrollo posterior a 2.0 (sin publicar):** comparación original/resultado para elegir imágenes del lote, peso real en preview, recorte/relleno, fondo JPEG, giro/espejos, escala de grises, perfil sRGB sin EXIF, JPEG progresivo, WebP sin pérdida y ajustes JSON compartibles. Estas mejoras no pertenecen al paquete 2.0 ya enviado a Store. Consulta [el estado de implementación](docs/NEXT_VERSION.md).
+**Novedades de 2.1.0:** herramientas de documentos y formatos (PDF combinado o individual, páginas de PDF a PNG/JPEG con contraseña, ICO, HEIC a PNG beta, páginas TIFF, WebP animado y JPEG XL beta), comparación original/resultado, recorte/relleno, giro/espejos, escala de grises, perfil sRGB sin EXIF, JPEG progresivo, WebP sin pérdida y ajustes JSON compartibles. Consulta el [registro de cambios](CHANGELOG.md) y el [estado de implementación](docs/NEXT_VERSION.md).
 
 Investigación técnica: [PDF, JPEG XL y otros formatos](docs/FORMAT_RESEARCH_2026-11.md). Las pruebas del motor original y las propuestas se complementan con el [estado de implementación y sus límites](docs/FORMAT_IMPLEMENTATION.md).
 
@@ -31,11 +31,11 @@ La carpeta vigilada muestra notificaciones de Windows al convertir imágenes y u
 
 Forma tiene una sola edición gratuita. Las funciones futuras se incorporarán a esta misma aplicación, sin una edición Pro separada ni niveles de pago. Los paquetes en español e inglés son variantes de la misma app.
 
-La meta activa es **Forma 2.0**: ocho herramientas incluidas en la única app gratuita. El código de desarrollo ya integra redimensionado, ajustes, subcarpetas, renombrado, marcas, vista previa, peso objetivo y vigilancia. Consulta [los criterios de entrega](V2_RELEASE.md) y la [hoja de ruta](ROADMAP.md).
+**Forma 2.0** reunió ocho herramientas en la única app gratuita: redimensionado, ajustes, subcarpetas, renombrado, marcas, vista previa, peso objetivo y vigilancia. **2.1.0** añade las novedades anteriores. Consulta [los criterios de entrega](V2_RELEASE.md) y la [hoja de ruta](ROADMAP.md).
 
-> **Estado de desarrollo:** este README describe el código de trabajo. Las mejoras posteriores a 1.3.0 aún no están publicadas; consulta las notas del release que descargues. Las herramientas de 2.0 están en validación y no forman parte del release 1.3.0.
+> **Estado:** la versión en `main` es la **2.1.0** (en preparación). La última publicada es la indicada en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases); consulta las notas de la versión que descargues.
 
-La **2.0.0** está integrada en `main` y tiene tag `v2.0.0`. Su workflow genera un release borrador y omite R2; los paquetes siguen sujetos a los [criterios de entrega](V2_RELEASE.md). No equivale a publicación estable ni certificación Store.
+La **2.0.0** tiene tag `v2.0.0` y fue enviada a Microsoft Store. La **2.1.0** está integrada en `main`; su tag `v2.1.0` genera un release borrador sin R2 que debe revisarse antes de publicarlo. Los paquetes siguen sujetos a los [criterios de entrega](V2_RELEASE.md). Ningún borrador equivale a publicación estable ni a certificación de Store.
 
 ## APPX local de prueba
 
@@ -68,6 +68,8 @@ La preparación de Store y las comprobaciones pendientes están en la [guía de 
 - Redimensionar, guardar ajustes, conservar subcarpetas y renombrar con numeración.
 - Añadir marcas de texto o imagen con vista previa y limitar el peso de JPEG/WebP/AVIF.
 - Vigilar carpetas, recibir avisos y seguir convirtiendo desde la bandeja del sistema.
+- Combinar imágenes en PDF, exportar páginas de PDF a PNG/JPEG, crear ICO y convertir HEIC, TIFF y animaciones (algunas en beta; ver [límites](docs/FORMAT_IMPLEMENTATION.md)).
+- Comparar original y resultado, recortar o rellenar el lienzo, girar, voltear y pasar a escala de grises.
 
 [Novedades](CHANGELOG.md) · [Privacidad](PRIVACY.md) · [Soporte](SUPPORT.md) · [Licencia GPL v3](LICENSE)
 
@@ -85,7 +87,7 @@ Los formatos de salida disponibles son JPEG, PNG, WebP, AVIF, TIFF y GIF. La cal
 
 ## Mejoras conservadas de 1.3
 
-En 2.0, al cerrar eliges entre salir (cierre seguro) u ocultar en la bandeja (continúa el trabajo).
+Desde 2.0, al cerrar eliges entre salir (cierre seguro) u ocultar en la bandeja (continúa el trabajo).
 
 La configuración de formato, calidad y destino se conserva entre sesiones. La búsqueda de carpetas se puede cancelar e informa las rutas inaccesibles. Al finalizar se muestra el tamaño de salida y el ahorro (o aumento) del último lote; puedes reintentar solo los archivos fallidos. Abrir destino utiliza la carpeta del último lote aunque cambies la selección. Si cierras Forma durante una conversión, se detiene la cola y se espera a los archivos activos antes de salir.
 
@@ -114,7 +116,7 @@ npm run build:app:en
 npm run build:en
 ```
 
-El último comando genera NSIS y APPX en `release/2.0.0/en/`, con el nombre
+El último comando genera NSIS y APPX en `release/2.1.0/en/`, con el nombre
 **Forma Image Converter**. `npm run build` conserva los paquetes en español.
 Ambas compilaciones comparten los directorios intermedios; compílalas secuencialmente.
 
@@ -149,13 +151,13 @@ npm run build:app
 
 ## Instalador de Windows
 
-Para probar Forma 2.0 antes del lanzamiento, abre [Compilar Forma 2.0 para pruebas](https://github.com/deimisq/forma-conversor-imagenes/actions/workflows/test-build.yml), selecciona la ejecución más reciente y descarga el artefacto `forma-2.0.0-windows-x64-es` (o `-en`). Extrae el ZIP y ejecuta el EXE. [Instrucciones de instalación](docs/INSTALL-TEST.md). Estas compilaciones no publican un release estable.
+Para probar una versión antes del lanzamiento, abre [Validar y compilar Forma](https://github.com/deimisq/forma-conversor-imagenes/actions/workflows/test-build.yml), selecciona la ejecución más reciente y descarga el artefacto `forma-2.1.0-windows-x64-es` (o `-en`). Extrae el ZIP y ejecuta el EXE. [Instrucciones de instalación](docs/INSTALL-TEST.md). Estas compilaciones no publican un release estable; el workflow también se ejecuta en cada PR y push a `main`.
 
 ```powershell
 npm run build
 ```
 
-El instalador NSIS x64 y el APPX se generan en `release/2.0.0/`.
+El instalador NSIS x64 y el APPX se generan en `release/2.1.0/`.
 
 El instalador de desarrollo no está firmado con un certificado de publicación, por lo que Windows puede mostrar una advertencia de SmartScreen.
 
@@ -170,7 +172,7 @@ El instalador estándar gestiona la actualización de una instalación existente
 
 ## Descargas y actualizaciones
 
-**Excepción actual:** el tag existente `v2.0.0` usa `EP_DRAFT=true` y omite R2. No recrearlo ni moverlo. El borrador requiere acceso y no sustituye la descarga estable. [STORE_RELEASE.md](STORE_RELEASE.md) incluye los datos ES/EN preparados para Partner Center.
+**Releases como borrador:** todo tag genera un release borrador y omite R2 salvo que la variable del repositorio `PUBLISH_RELEASES` valga `true`. El tag existente `v2.0.0` no debe recrearse ni moverse. El borrador requiere acceso y no sustituye la descarga estable. [STORE_RELEASE.md](STORE_RELEASE.md) incluye los datos ES/EN preparados para Partner Center.
 
 Cada tag `vX.Y.Z` ejecuta pruebas y `npm run release:all` en GitHub Actions. Publica ambos instaladores x64, ambos APPX y los metadatos `latest.yml` y `en.yml` en [Releases](https://github.com/deimisq/forma-conversor-imagenes/releases). Descarga `forma-setup-X.Y.Z.exe` para la variante estándar o `forma-setup-en-X.Y.Z.exe` para la variante inglesa; el idioma inicial de la interfaz sigue las preferencias de Windows.
 
@@ -205,4 +207,4 @@ El proyecto sigue SemVer: incrementa MAJOR para cambios incompatibles, MINOR par
 
 El remoto público está registrado en Git y en los metadatos de `package.json`. Para publicar una versión, sincroniza `package.json` y `package-lock.json`, actualiza `CHANGELOG.md` y sube el tag correspondiente; GitHub Actions compila y publica los artefactos usando su `GITHUB_TOKEN` de alcance limitado.
 
-Las nuevas herramientas de PDF, ICO, JPEG XL, HEIC, TIFF y animaciones se describen con sus límites en [Formatos implementados en desarrollo](docs/FORMAT_IMPLEMENTATION.md). Son cambios sin publicar.
+Las herramientas de PDF, ICO, JPEG XL, HEIC, TIFF y animaciones, incluidas en 2.1.0, se describen con sus límites en [Formatos implementados](docs/FORMAT_IMPLEMENTATION.md).

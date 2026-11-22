@@ -68,6 +68,7 @@ function validateWatermark(value: unknown): asserts value is WatermarkSettings {
   if (typeof w.mode !== 'string' || !['none', 'text', 'image'].includes(w.mode) || typeof w.position !== 'string' || !['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'].includes(w.position)) throw new Error('El tipo o la posición de la marca de agua no son válidos.')
   if (typeof w.text !== 'string' || w.text.length > 120 || /[\x00-\x1f]/.test(w.text) || (w.mode === 'text' && !w.text.trim())) throw new Error('El texto de la marca debe tener entre 1 y 120 caracteres en una sola línea.')
   if (typeof w.imagePath !== 'string' || w.imagePath.includes('\0') || (w.mode === 'image' && !/^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+|\/)/.test(w.imagePath))) throw new Error('Selecciona una imagen válida para la marca de agua.')
+  if (w.mode === 'image' && !/\.(?:png|jpe?g|webp)$/i.test(w.imagePath as string)) throw new Error('La marca debe ser una imagen PNG, JPEG o WebP sin animación.')
   if (typeof w.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(w.color)) throw new Error('El color de la marca no es válido.')
   for (const [key, min, max] of [['size', 5, 80], ['opacity', 0, 100], ['margin', 0, 500]] as const) {
     if (typeof w[key] !== 'number' || !Number.isInteger(w[key]) || w[key] < min || w[key] > max) throw new Error('El tamaño debe estar entre 5 y 80 %, la opacidad entre 0 y 100 % y el margen entre 0 y 500 píxeles.')

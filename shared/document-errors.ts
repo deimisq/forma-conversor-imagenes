@@ -95,5 +95,13 @@ export const documentErrors: Record<string, { es: string; en: string }> = {
   "JPEG XL exceeds 16 MP / JPEG XL supera 16 MP": {
     "es": "JPEG XL supera 16 MP",
     "en": "JPEG XL exceeds 16 MP"
+  },
+  "Invalid JPEG XL options / Opciones JPEG XL inválidas": {
+    "es": "Opciones JPEG XL inválidas",
+    "en": "Invalid JPEG XL options"
+  },
+  "Invalid PDF options / Opciones de PDF inválidas": {
+    "es": "Opciones de PDF inválidas",
+    "en": "Invalid PDF options"
   }
 }

@@ -103,3 +103,10 @@ test('la búsqueda conserva errores de acceso y admite cancelación sin perder l
   assert.equal(errors.length, 1)
   assert.deepEqual(await collectImageEntries([dir], { cancelled: () => true }), [])
 })
+
+test('la marca de imagen solo admite rutas PNG, JPEG o WebP', () => {
+  const base = defaultSettings()
+  const withMark = imagePath => ({ ...base, watermark: { ...base.watermark, mode: 'image', imagePath } })
+  for (const ok of ['C:/marcas/logo.png', 'C:/marcas/logo.JPG', '/tmp/logo.webp']) assert.doesNotThrow(() => validateSettings(withMark(ok)), ok)
+  for (const bad of ['C:/Windows/win.ini', 'C:/datos/clave.txt', '/etc/passwd', 'C:/marcas/logo.gif']) assert.throws(() => validateSettings(withMark(bad)), /PNG, JPEG o WebP/, bad)
+})

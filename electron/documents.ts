@@ -17,9 +17,9 @@ export function validateDocumentRequest(value: unknown): DocumentRequest {
   if (!r || !['pdf', 'pages', 'ico', 'jxl', 'heic', 'tiff', 'animation'].includes(r.mode) || !Array.isArray(r.files) || !r.files.length || r.files.length > 500 || !r.files.every(f => typeof f === 'string' && path.isAbsolute(f) && !f.includes('\0')) || typeof r.outputDir !== 'string' || !path.isAbsolute(r.outputDir) || r.outputDir.includes('\0')) throw new Error('Invalid document paths / Rutas de documento inválidas')
   if (!['A4', 'LETTER', 'image'].includes(r.paper) || !Number.isInteger(r.margin) || r.margin < 0 || r.margin > 100 || !Number.isInteger(r.dpi) || r.dpi < 72 || r.dpi > 600 || !Number.isInteger(r.first) || !Number.isInteger(r.last) || r.first < 1 || r.last < r.first || r.last > 1000) throw new Error('Invalid page options / Opciones de página inválidas')
   if (r.mode === 'pages' && (r.files.length !== 1 || path.extname(r.files[0]).toLowerCase() !== '.pdf')) throw new Error('Select one PDF / Selecciona un PDF')
-  if (r.lossless !== undefined && typeof r.lossless !== 'boolean' || r.quality !== undefined && (!Number.isInteger(r.quality) || r.quality < 1 || r.quality > 100)) throw new Error('Invalid JPEG XL options')
-  if (r.separate !== undefined && typeof r.separate !== 'boolean' || r.orientation !== undefined && !['portrait', 'landscape', 'auto'].includes(r.orientation)) throw new Error('Invalid PDF options')
-  if (r.password !== undefined && (typeof r.password !== 'string' || r.password.length > 1024) || r.pageFormat !== undefined && !['png', 'jpeg'].includes(r.pageFormat)) throw new Error('Invalid PDF options')
+  if (r.lossless !== undefined && typeof r.lossless !== 'boolean' || r.quality !== undefined && (!Number.isInteger(r.quality) || r.quality < 1 || r.quality > 100)) throw new Error('Invalid JPEG XL options / Opciones JPEG XL inválidas')
+  if (r.separate !== undefined && typeof r.separate !== 'boolean' || r.orientation !== undefined && !['portrait', 'landscape', 'auto'].includes(r.orientation)) throw new Error('Invalid PDF options / Opciones de PDF inválidas')
+  if (r.password !== undefined && (typeof r.password !== 'string' || r.password.length > 1024) || r.pageFormat !== undefined && !['png', 'jpeg'].includes(r.pageFormat)) throw new Error('Invalid PDF options / Opciones de PDF inválidas')
   return { ...r, files: [...r.files] }
 }
 

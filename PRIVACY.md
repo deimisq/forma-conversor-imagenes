@@ -1,6 +1,6 @@
 # Política de privacidad de Forma
 
-**Última actualización: 12 de noviembre de 2026 · Forma 2.0.0**
+**Última actualización: 22 de noviembre de 2026 · Forma 2.1.0**
 
 [English privacy policy](PRIVACY.en.md)
 
@@ -16,6 +16,7 @@ Forma es un proyecto independiente mantenido por la cuenta pública [deimisq en 
 - Forma lee los archivos o carpetas que seleccionas, incluidos sus nombres, rutas y metadatos necesarios para convertirlos y mostrar la cola.
 - Las imágenes originales no se cargan ni se envían a Forma, GitHub, Microsoft ni a otros servidores.
 - Los resultados se guardan en la carpeta que elijas o, de forma predeterminada, en `Imágenes/Imagenes convertidas` o `Imágenes/Converted images`, según el idioma al iniciar.
+- Las herramientas de PDF, ICO, HEIC, JPEG XL y TIFF también procesan los archivos localmente. La contraseña que escribes para abrir un PDF se usa solo durante esa operación: no se guarda en disco ni se envía.
 - Forma no conserva una copia propia de tus imágenes. Los originales y resultados permanecen en las ubicaciones de Windows que hayas elegido hasta que tú los muevas o elimines.
 
 ## Preferencias, ajustes y herramientas
